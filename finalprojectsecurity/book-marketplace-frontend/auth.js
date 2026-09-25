@@ -173,7 +173,7 @@ async function clearCurrentUser() {
                 cache: "no-store"
             });
         }
-    } catch (_) {}
+    } catch (_) { }
     sessionStorage.removeItem(SESSION_TOKEN_KEY);
     sessionStorage.removeItem(SESSION_USER_KEY);
     localStorage.removeItem(SESSION_USER_KEY);

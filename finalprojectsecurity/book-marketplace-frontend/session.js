@@ -76,7 +76,7 @@
                     cache: "no-store"
                 });
             }
-        } catch (_) {}
+        } catch (_) { }
         finally { clearSession(); }
     }
 

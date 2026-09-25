@@ -1,0 +1,5 @@
+# Agent directories and guidelines
+.agent/
+.agents/
+AGENTS.md
+GEMINI.md
