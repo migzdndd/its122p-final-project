@@ -7,7 +7,7 @@ declare(strict_types=1);
  * reaching the browser and surface only as a generic NetworkError.
  */
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin !== '' && preg_match('#^https?://(?:localhost|127\.0\.0\.1)(?::\d+)?$#i', $origin)) {
+if ($origin !== '' && preg_match('#^https?://(?:localhost|127\.0\.0\.1|.*\.vercel\.app)(?::\d+)?$#i', $origin)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
 }
