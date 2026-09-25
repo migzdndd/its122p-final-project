@@ -207,20 +207,21 @@ async function handleLogin(event) {
             cache: "no-store",
             body: JSON.stringify({ identifier, password })
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Unable to sign in.");
+        const text = await response.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
+        if (!response.ok) {
+            const msg = (typeof data.error === 'string' ? data.error : (data.details || (typeof data.error === 'object' ? JSON.stringify(data.error) : 'Unable to sign in.')));
+            throw new Error(msg);
+        }
         saveCurrentUser(data.user, data.token);
         const destination = data.user.role === "Admin" ? "admin.html" : data.user.role === "Staff" ? "staff.html" : "index.html";
         showMessage(`Welcome back, ${data.user.username}! Redirecting...`, "success");
         setTimeout(() => window.location.replace(destination), 250);
     } catch (error) {
-        let detail = "Unable to sign in.";
+        let detail = error.message || "Unable to sign in.";
         if (error instanceof TypeError) {
             detail = `Unable to reach ${API_BASE}. Check that the PHP API is running and that this page was opened over HTTP/HTTPS (not file://).`;
-        } else if (error && typeof error === "object") {
-            detail = error.message || (typeof error.error === "string" ? error.error : JSON.stringify(error));
-        } else if (typeof error === "string") {
-            detail = error;
         }
         showMessage(`Unable to sign in: ${detail}`, "error");
     } finally {
