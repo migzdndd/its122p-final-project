@@ -214,9 +214,14 @@ async function handleLogin(event) {
         showMessage(`Welcome back, ${data.user.username}! Redirecting...`, "success");
         setTimeout(() => window.location.replace(destination), 250);
     } catch (error) {
-        const detail = error instanceof TypeError
-            ? `Unable to reach ${API_BASE}. Check that the PHP API is running and that this page was opened over HTTP/HTTPS (not file://).`
-            : error.message;
+        let detail = "Unable to sign in.";
+        if (error instanceof TypeError) {
+            detail = `Unable to reach ${API_BASE}. Check that the PHP API is running and that this page was opened over HTTP/HTTPS (not file://).`;
+        } else if (error && typeof error === "object") {
+            detail = error.message || (typeof error.error === "string" ? error.error : JSON.stringify(error));
+        } else if (typeof error === "string") {
+            detail = error;
+        }
         showMessage(`Unable to sign in: ${detail}`, "error");
     } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.querySelector("span").textContent = "Sign In"; }
