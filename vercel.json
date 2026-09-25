@@ -1,15 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "finalprojectsecurity/book-marketplace-backend/api/*.php": {
-      "runtime": "vercel-php@0.9.0"
+    "api/*.php": {
+      "runtime": "vercel-php@0.9.0",
+      "includeFiles": "finalprojectsecurity/book-marketplace-backend/**"
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/finalprojectsecurity/book-marketplace-backend/api/$1"
-    },
     {
       "source": "/",
       "destination": "/finalprojectsecurity/book-marketplace-frontend/index.html"
