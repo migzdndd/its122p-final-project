@@ -10,9 +10,11 @@ $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin !== '' && preg_match('#^https?://(?:localhost|127\.0\.0\.1|.*\.vercel\.app)(?::\d+)?$#i', $origin)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
+} else {
+    header('Access-Control-Allow-Origin: *');
 }
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, Cache-Control');
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, Cache-Control, X-Requested-With');
 header('Access-Control-Max-Age: 600');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');

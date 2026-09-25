@@ -2,14 +2,12 @@
 /**
  * /api/system_records.php
  * GET (list/show), POST (create), PUT (update), DELETE
+ *
+ * Administrator access only for system audit logs and financial records.
  */
 require_once __DIR__ . '/../lib/bootstrap.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    require_authenticated_user($pdo);
-} else {
-    require_authenticated_user($pdo, ['Admin']);
-}
+require_authenticated_user($pdo, ['Admin']);
 
 $crud = new Crud(
     pdo: $pdo,
@@ -22,4 +20,6 @@ $crud = new Crud(
     ],
 );
 
-dispatch_crud_request($crud, 'record_id');
+dispatch_crud_request($crud, 'record_id', function (string $method, PDO $pdo) {
+    require_authenticated_user($pdo, ['Admin']);
+});

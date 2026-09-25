@@ -1,32 +1,30 @@
 <?php
 /**
  * Routes a single incoming HTTP request to the right Crud method and
- * writes the JSON response. Every file in /api calls this once it has
- * built its Crud instance.
+ * writes the JSON response.
  *
- *   GET    /api/user.php            -> list (supports filters, limit, offset)
- *   GET    /api/user.php?id=5       -> show one row
- *   POST   /api/user.php            -> create (JSON body)
- *   PUT    /api/user.php?id=5       -> update (JSON body, partial)
- *   DELETE /api/user.php?id=5       -> delete
+ *   GET    /api/<resource>.php            -> list (supports filters, limit, offset)
+ *   GET    /api/<resource>.php?id=5       -> show one row
+ *   POST   /api/<resource>.php            -> create (JSON body)
+ *   PUT    /api/<resource>.php?id=5       -> update (JSON body, partial)
+ *   DELETE /api/<resource>.php?id=5       -> delete
  */
-function dispatch_crud_request(Crud $crud, string $primaryKeyName): void
+function dispatch_crud_request(Crud $crud, string $primaryKeyName, ?callable $authorizer = null): void
 {
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('Expires: 0');
+    global $pdo;
 
-    $method = $_SERVER['REQUEST_METHOD'];
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
     if ($method === 'OPTIONS') {
         http_response_code(204);
         exit;
     }
 
-    require_authenticated_user($pdo);
+    if ($authorizer !== null) {
+        $authorizer($method, $pdo);
+    } else {
+        require_authenticated_user($pdo);
+    }
 
     $id = $_GET['id'] ?? null;
 
@@ -81,7 +79,7 @@ function dispatch_crud_request(Crud $crud, string $primaryKeyName): void
         Response::error($e->getMessage(), 422);
     } catch (PDOException $e) {
         // 1062 = duplicate key, 1451/1452 = FK constraint violations
-        $code = (int) $e->errorInfo[1] ?? 0;
+        $code = (int) ($e->errorInfo[1] ?? 0);
         if ($code === 1062) {
             Response::error('A record with these unique values already exists.', 409, ['details' => $e->getMessage()]);
         } elseif (in_array($code, [1451, 1452], true)) {

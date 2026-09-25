@@ -11,16 +11,27 @@ const LIBROWSE_SESSION_TTL = 28800; // 8 hours
 
 function security_xml_path(): string
 {
-    return dirname(__DIR__) . '/data/security.xml';
+    $custom = getenv('LIBROWSE_SECURITY_XML');
+    if ($custom !== false && $custom !== '') return $custom;
+
+    $localDir = dirname(__DIR__) . '/data';
+    if (!is_dir($localDir)) {
+        @mkdir($localDir, 0700, true);
+    }
+    // Fall back to system temporary directory in read-only environments (e.g. serverless Lambda)
+    if (!is_writable($localDir) && !is_writable(dirname($localDir))) {
+        return sys_get_temp_dir() . '/librowse_security.xml';
+    }
+    return $localDir . '/security.xml';
 }
 
 function ensure_security_xml(): void
 {
     $path = security_xml_path();
     $dir = dirname($path);
-    if (!is_dir($dir)) mkdir($dir, 0700, true);
+    if (!is_dir($dir)) @mkdir($dir, 0700, true);
     if (!file_exists($path)) {
-        file_put_contents($path, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<security>\n    <sessions/>\n</security>\n", LOCK_EX);
+        @file_put_contents($path, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<security>\n    <sessions/>\n</security>\n", LOCK_EX);
         @chmod($path, 0600);
     }
 }
@@ -118,7 +129,29 @@ function issue_auth_token(array $user): string
 
 function bearer_token_from_request(): ?string
 {
-    $header = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+    $header = '';
+    if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+        $header = $_SERVER['HTTP_AUTHORIZATION'];
+    } elseif (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $header = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    } elseif (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        foreach ($headers as $k => $v) {
+            if (strcasecmp($k, 'Authorization') === 0) {
+                $header = $v;
+                break;
+            }
+        }
+    } elseif (function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        foreach ($headers as $k => $v) {
+            if (strcasecmp($k, 'Authorization') === 0) {
+                $header = $v;
+                break;
+            }
+        }
+    }
+    $header = trim((string) $header);
     return preg_match('/^Bearer\s+(.+)$/i', $header, $matches) ? trim($matches[1]) : null;
 }
 

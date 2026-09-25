@@ -5,9 +5,9 @@ function librowseApiBase() {
     const host = window.location.hostname || '127.0.0.1';
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     if (host.includes('vercel.app') || window.location.port === '' || window.location.port === '80' || window.location.port === '443') {
-        return window.location.origin;
+        return `${window.location.origin}/api`;
     }
-    return `${protocol}//${host}:8000`;
+    return `${protocol}//${host}:8000/api`;
 }
 const API_BASE = librowseApiBase();
 const SESSION_TOKEN_KEY = "librowseSessionToken";
@@ -201,7 +201,7 @@ async function handleLogin(event) {
     showMessage("Authenticating with Librowse...", "info");
 
     try {
-        const response = await fetch(`${API_BASE}/api/auth.php?action=login`, {
+        const response = await fetch(`${API_BASE}/auth.php?action=login`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
             cache: "no-store",

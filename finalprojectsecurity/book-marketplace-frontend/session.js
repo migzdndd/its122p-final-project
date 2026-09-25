@@ -1,17 +1,40 @@
-/* Shared server-session guard for all authenticated Librowse pages. */
+/* Shared server-session guard for all Librowse pages. */
 (function () {
-    const API_BASE = (window.LIBROWSE_API_BASE ? String(window.LIBROWSE_API_BASE).replace(/\/$/, "") : `${window.location.protocol === "https:" ? "https:" : "http:"}//${window.location.hostname || "127.0.0.1"}:8000/api`);
+    function librowseApiBase() {
+        if (window.LIBROWSE_API_BASE) return String(window.LIBROWSE_API_BASE).replace(/\/$/, "");
+        const host = window.location.hostname || "127.0.0.1";
+        const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+        if (host.includes("vercel.app") || window.location.port === "" || window.location.port === "80" || window.location.port === "443") {
+            return `${window.location.origin}/api`;
+        }
+        return `${protocol}//${host}:8000/api`;
+    }
+
+    const API_BASE = librowseApiBase();
     const TOKEN_KEY = "librowseSessionToken";
     const USER_KEY = "librowseCurrentUser";
 
-    document.documentElement.classList.add("librowse-auth-pending");
-    const style = document.createElement("style");
-    style.textContent = 'html.librowse-auth-pending body{visibility:hidden!important}html.librowse-auth-ready body{visibility:visible!important}';
-    document.head.appendChild(style);
+    const path = window.location.pathname.toLowerCase();
+    const isPublicPage = path.endsWith("index.html") ||
+                         path.endsWith("browse.html") ||
+                         path.endsWith("login.html") ||
+                         path.endsWith("register.html") ||
+                         path === "" ||
+                         path === "/" ||
+                         path.endsWith("/");
+
+    if (!isPublicPage) {
+        document.documentElement.classList.add("librowse-auth-pending");
+        const style = document.createElement("style");
+        style.textContent = "html.librowse-auth-pending body{visibility:hidden!important}html.librowse-auth-ready body{visibility:visible!important}";
+        document.head.appendChild(style);
+    } else {
+        document.documentElement.classList.add("librowse-auth-ready");
+    }
 
     function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
     function getUser() {
-        try { return JSON.parse(sessionStorage.getItem(USER_KEY) || 'null'); }
+        try { return JSON.parse(sessionStorage.getItem(USER_KEY) || "null"); }
         catch (_) { return null; }
     }
     function saveSession(token, user) {
@@ -25,13 +48,13 @@
         localStorage.removeItem(USER_KEY);
     }
 
-    async function validateSession(redirect = true) {
-        document.documentElement.classList.add("librowse-auth-pending");
-        document.documentElement.classList.remove("librowse-auth-ready");
+    async function validateSession(redirect = false) {
         const token = getToken();
         if (!token) {
             clearSession();
-            if (redirect) window.location.replace("login.html");
+            if (redirect && !isPublicPage) window.location.replace("login.html");
+            document.documentElement.classList.remove("librowse-auth-pending");
+            document.documentElement.classList.add("librowse-auth-ready");
             return null;
         }
         try {
@@ -40,16 +63,18 @@
                 headers: { "Authorization": `Bearer ${token}`, "Cache-Control": "no-store" },
                 cache: "no-store"
             });
-            if (!response.ok) throw new Error('Invalid session');
+            if (!response.ok) throw new Error("Invalid session");
             const data = await response.json();
-            if (!data.authenticated || !data.user) throw new Error('Invalid session');
+            if (!data.authenticated || !data.user) throw new Error("Invalid session");
             sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
             document.documentElement.classList.remove("librowse-auth-pending");
             document.documentElement.classList.add("librowse-auth-ready");
             return data.user;
         } catch (_) {
             clearSession();
-            if (redirect) window.location.replace("login.html");
+            if (redirect && !isPublicPage) window.location.replace("login.html");
+            document.documentElement.classList.remove("librowse-auth-pending");
+            document.documentElement.classList.add("librowse-auth-ready");
             return null;
         }
     }
@@ -58,9 +83,9 @@
         const allowed = Array.isArray(expected) ? expected : [expected];
         const user = await validateSession(true);
         if (!user) return null;
-        const role = String(user.role || '').toLowerCase();
-        if (!allowed.includes(role)) {
-            window.location.replace(role === 'admin' ? 'admin.html' : role === 'staff' ? 'staff.html' : 'index.html');
+        const role = String(user.role || "").toLowerCase();
+        if (!allowed.map(r => String(r).toLowerCase()).includes(role)) {
+            window.location.replace(role === "admin" ? "admin.html" : role === "staff" ? "staff.html" : "index.html");
             return null;
         }
         return user;
@@ -81,10 +106,10 @@
     }
 
     window.librowseAuth = { API_BASE, getToken, getUser, saveSession, clearSession, validateSession, requireRole, logout };
-    window.librowseAuthReady = validateSession(true);
+    window.librowseAuthReady = validateSession(!isPublicPage);
 
     window.addEventListener("pageshow", function () {
-        // Handles bfcache/back-button restores after logout.
-        window.librowseAuthReady = validateSession(true);
+        // Handles bfcache/back-button restores after logout
+        window.librowseAuthReady = validateSession(!isPublicPage);
     });
 })();

@@ -153,17 +153,10 @@ function requireAuthenticatedCustomer() {
     }
 
 
-    if (currentUser.role !== "Customer") {
-
-        alert(
-            "This page currently supports Customer accounts only."
-        );
-
-        window.location.href =
-            "login.html";
-
+    if (currentUser.role !== "Customer" && currentUser.role !== "Admin") {
+        alert("This feature is for Customer accounts. Staff users should use the Staff Dashboard.");
+        window.location.href = "staff.html";
         return false;
-
     }
 
 
@@ -263,10 +256,14 @@ async function apiRequest(endpoint, options = {}) {
 
 
         if (response.status === 401) {
+            const hadToken = !!sessionStorage.getItem(SESSION_TOKEN_KEY);
             if (window.librowseAuth) window.librowseAuth.clearSession();
             else { sessionStorage.removeItem(SESSION_TOKEN_KEY); sessionStorage.removeItem(SESSION_USER_KEY); }
-            window.location.replace("login.html");
-            throw new Error("Your session has expired. Please sign in again.");
+            if (hadToken) {
+                window.location.replace("login.html");
+                throw new Error("Your session has expired. Please sign in again.");
+            }
+            throw new Error("Authentication required.");
         }
 
         /* response.ok = success */
@@ -366,14 +363,14 @@ async function loadBooks() {
         if (bookList) {
             bookList.innerHTML = `<tr><td colspan="10">Loading books...</td></tr>`;
         }
-        const results = await Promise.all([
+        const [listingsRes, catalogRes, usersRes] = await Promise.all([
             apiRequest("user_books.php"),
             apiRequest("books_catalog.php"),
-            apiRequest("user.php")
+            apiRequest("user.php").catch(() => [])
         ]);
-        bookListings = results[0];
-        booksCatalog = results[1];
-        users = results[2];
+        bookListings = Array.isArray(listingsRes) ? listingsRes : [];
+        booksCatalog = Array.isArray(catalogRes) ? catalogRes : [];
+        users = Array.isArray(usersRes) ? usersRes : [];
         bookMap = {};
         userMap = {};
         inventoryMap = {};
@@ -1856,7 +1853,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     loadCurrentUser();
-    if (!requireAuthenticatedCustomer()) return;
+
+    const isCustomerActionPage = !!document.getElementById("list-book-form") ||
+                                 !!document.getElementById("transaction-list") ||
+                                 !!document.getElementById("refund-form") ||
+                                 !!document.getElementById("report-form");
+
+    if (isCustomerActionPage) {
+        if (!requireAuthenticatedCustomer()) return;
+    }
 
     updateAuthStatusUI();
     applyCurrentUserToForms();

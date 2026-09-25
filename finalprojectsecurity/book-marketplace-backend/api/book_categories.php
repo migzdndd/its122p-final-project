@@ -5,12 +5,6 @@
  */
 require_once __DIR__ . '/../lib/bootstrap.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    require_authenticated_user($pdo);
-} else {
-    require_authenticated_user($pdo, ['Admin']);
-}
-
 $crud = new Crud(
     pdo: $pdo,
     table: 'BOOK_CATEGORIES',
@@ -19,4 +13,8 @@ $crud = new Crud(
     required: ['created_by_admin_id', 'category_name'],
 );
 
-dispatch_crud_request($crud, 'category_id');
+dispatch_crud_request($crud, 'category_id', function (string $method, PDO $pdo) {
+    if ($method !== 'GET') {
+        require_authenticated_user($pdo, ['Admin']);
+    }
+});

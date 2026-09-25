@@ -1,11 +1,12 @@
 <?php
 /**
- * Generic CRUD helper used by every endpoint in /api.
+ * Generic CRUD helper used by endpoints in /api.
  *
- * Each endpoint file configures this class with its table name, primary
+ * Each endpoint configures this class with its table name, primary
  * key column, and the columns clients are allowed to write to. All SQL
  * uses prepared statements — no user input is ever concatenated into a
- * query string.
+ * query string. Sensitive columns in $hidden are automatically removed
+ * from all responses.
  */
 class Crud
 {
@@ -20,6 +21,8 @@ class Crud
     private array $enums;
     /** @var string[] columns that must be present (and non-null) on create */
     private array $required;
+    /** @var string[] columns hidden from output (e.g. password_hash) */
+    private array $hidden;
 
     public function __construct(
         PDO $pdo,
@@ -28,7 +31,8 @@ class Crud
         array $insertable,
         array $required = [],
         array $enums = [],
-        ?array $updatable = null
+        ?array $updatable = null,
+        array $hidden = []
     ) {
         $this->pdo = $pdo;
         $this->table = $table;
@@ -37,6 +41,22 @@ class Crud
         $this->updatable = $updatable ?? $insertable;
         $this->enums = $enums;
         $this->required = $required;
+        $this->hidden = $hidden;
+    }
+
+    public function getPdo(): PDO
+    {
+        return $this->pdo;
+    }
+
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
+    public function getPrimaryKey(): string
+    {
+        return $this->primaryKey;
     }
 
     /**
@@ -62,14 +82,15 @@ class Crud
         }
         $sql .= " ORDER BY `{$this->primaryKey}` ASC";
 
-        $limit = isset($queryParams['limit']) ? max(1, (int) $queryParams['limit']) : 50;
+        $limit = isset($queryParams['limit']) ? max(1, min(500, (int) $queryParams['limit'])) : 50;
         $offset = isset($queryParams['offset']) ? max(0, (int) $queryParams['offset']) : 0;
         $sql .= " LIMIT {$limit} OFFSET {$offset}";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($bindings);
+        $rows = $stmt->fetchAll();
 
-        return $stmt->fetchAll();
+        return array_values(array_map([$this, 'sanitizeRow'], $rows));
     }
 
     /** GET /api/<resource>?id=5 */
@@ -81,7 +102,7 @@ class Crud
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
 
-        return $row ?: null;
+        return $row ? $this->sanitizeRow($row) : null;
     }
 
     /**
@@ -92,6 +113,7 @@ class Crud
      */
     public function create(array $data): array
     {
+        $data = $this->preparePasswords($data);
         $this->validate($data, isCreate: true);
 
         $columns = array_values(array_intersect($this->insertable, array_keys($data)));
@@ -129,6 +151,7 @@ class Crud
             return null;
         }
 
+        $data = $this->preparePasswords($data);
         $this->validate($data, isCreate: false);
 
         $columns = array_values(array_intersect($this->updatable, array_keys($data)));
@@ -192,5 +215,29 @@ class Crud
             return json_encode($value);
         }
         return $value;
+    }
+
+    /**
+     * Auto-hashes passwords if provided in create/update payloads
+     */
+    private function preparePasswords(array $data): array
+    {
+        if (isset($data['password']) && is_string($data['password']) && in_array('password_hash', $this->insertable, true)) {
+            $data['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            unset($data['password']);
+        } elseif (isset($data['password_hash']) && is_string($data['password_hash']) && !str_starts_with($data['password_hash'], '$')) {
+            $data['password_hash'] = password_hash($data['password_hash'], PASSWORD_DEFAULT);
+        }
+        return $data;
+    }
+
+    /** Strips hidden columns like password_hash from outgoing records. */
+    public function sanitizeRow(?array $row): ?array
+    {
+        if (!$row) return null;
+        foreach ($this->hidden as $col) {
+            unset($row[$col]);
+        }
+        return $row;
     }
 }
