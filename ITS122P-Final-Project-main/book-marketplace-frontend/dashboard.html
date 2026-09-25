@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Librowse Dashboard</title>
+</head>
+<body style="font-family: Arial, sans-serif; background:#f4f6f9; padding:40px;">
+<main style="max-width:620px;margin:auto;background:#fff;padding:30px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+    <h1 id="welcomeTitle">Opening dashboard…</h1>
+    <p id="roleDisplay">Checking your account role…</p>
+</main>
+<script>
+(function () {
+    let user = null;
+    try {
+        user = JSON.parse(localStorage.getItem("librowseCurrentUser"));
+    } catch (_) {}
+
+    if (!user || !user.user_id) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    const role = String(user.role || "").toLowerCase();
+    document.getElementById("welcomeTitle").textContent = `Welcome back, ${user.username}!`;
+    document.getElementById("roleDisplay").textContent = `Opening ${role || "user"} dashboard…`;
+
+    if (role === "admin") {
+        window.location.replace("admin.html");
+    } else if (role === "staff") {
+        window.location.replace("staff.html");
+    } else {
+        window.location.replace("index.html");
+    }
+})();
+</script>
+</body>
+</html>
