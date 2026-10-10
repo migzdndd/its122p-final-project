@@ -13,7 +13,7 @@
 }
 
 /* Base button selector excluding special inline links, tabs, and shelf items */
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn) {
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close) {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -39,13 +39,13 @@ button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shel
 }
 
 /* Ensure child text and icons stay visible above expanding fill */
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn) > * {
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close) > * {
     position: relative;
     z-index: 1;
 }
 
 /* Expanding pseudo-element from center */
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn)::before {
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close)::before {
     content: '';
     position: absolute;
     top: 0;
@@ -59,22 +59,22 @@ button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shel
 }
 
 /* Hover and focus states */
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):hover,
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):focus-visible {
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close):hover,
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close):focus-visible {
     color: #fff;
     border-color: var(--btn-accent-hover, var(--btn-fill, var(--spine-dark)));
     box-shadow: 0 4px 14px rgba(78, 59, 48, 0.2), 0 2px 6px rgba(78, 59, 48, 0.12);
 }
 
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):hover::before,
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):focus-visible::before {
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close):hover::before,
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close):focus-visible::before {
     left: 0;
     right: 0;
     opacity: 1;
 }
 
 /* Tactile press active state */
-button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):active {
+button:not(.text-link):not(.lock-retry-link):not(.toggle-password-btn):not(.shelf-book):not(.demo-pill):not(.mine-tab):not(.bulk-link):not(.auth-tab-btn):not(.dialog-close):active {
     transform: scale(0.95);
 }
 
