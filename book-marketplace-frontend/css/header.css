@@ -244,3 +244,8 @@ nav a.active-nav {
         height: 28px;
     }
 }
+
+/* Links that only appear once someone is signed in (see session.js) */
+nav a[hidden] {
+    display: none !important;
+}

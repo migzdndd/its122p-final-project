@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=Courier+Prime:wght@400;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+    <title>Send Feedback - Librowse</title>
+    <!-- No data-public-page attribute: session.js sends signed-out visitors to the login page. -->
+    <script src="session.js"></script>
+    <script src="consent.js"></script>
+</head>
+<body>
+<header>
+    <h1>Librowse Book Exchange</h1>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="browse.html">Browse Books</a>
+        <a href="list-book.html">List a Book</a>
+        <a href="customer-dashboard.html">Dashboard</a>
+        <a href="refund.html">Refunds</a>
+        <a href="report.html">Reports</a>
+        <a href="feedback.html" class="active-nav" aria-current="page" data-requires-login>Feedback</a>
+    </nav>
+    <div id="auth-status" class="auth-status">
+        <a href="login.html">Sign in</a>
+        <a href="register.html">Create account</a>
+    </div>
+</header>
+<main>
+    <section id="feedback">
+        <img class="section-icon" src="assets/icon-report.svg" alt="" width="52" height="52">
+        <h2>Share Your Feedback</h2>
+        <p class="feedback-intro">Tell us how Librowse is working for you. Your feedback goes straight to our Staff and Administrators, and helps us make buying, trading and listing books better.</p>
+        <p class="required-note"><span class="required-star">*</span> Required fields</p>
+
+        <form id="feedback-form" novalidate>
+            <label for="feedback-topic">What is your feedback about? <span class="required-star">*</span></label>
+            <select id="feedback-topic" name="topic" required>
+                <option value="">Select a topic</option>
+                <option value="Overall_Experience">Overall experience</option>
+                <option value="Browsing_Search">Browsing &amp; searching for books</option>
+                <option value="Listing_A_Book">Listing a book</option>
+                <option value="Transactions">Buying or trading (transactions)</option>
+                <option value="Refunds_Support">Refunds &amp; support</option>
+                <option value="Website_Design">Website design &amp; ease of use</option>
+                <option value="Bug_Report">Something isn&rsquo;t working (bug)</option>
+                <option value="Suggestion">Idea or suggestion</option>
+                <option value="Other">Other</option>
+            </select>
+            <span class="field-error" id="err-feedback-topic"></span>
+
+            <label id="feedback-rating-label">How would you rate your experience? <span class="required-star">*</span></label>
+            <div role="radiogroup" aria-labelledby="feedback-rating-label">
+                <div class="feedback-stars">
+                    <input type="radio" name="rating" id="rate-5" value="5"><label for="rate-5" title="5 – Excellent" aria-label="5 stars">&#9733;</label>
+                    <input type="radio" name="rating" id="rate-4" value="4"><label for="rate-4" title="4 – Good" aria-label="4 stars">&#9733;</label>
+                    <input type="radio" name="rating" id="rate-3" value="3"><label for="rate-3" title="3 – Okay" aria-label="3 stars">&#9733;</label>
+                    <input type="radio" name="rating" id="rate-2" value="2"><label for="rate-2" title="2 – Fair" aria-label="2 stars">&#9733;</label>
+                    <input type="radio" name="rating" id="rate-1" value="1"><label for="rate-1" title="1 – Poor" aria-label="1 star">&#9733;</label>
+                </div>
+                <span class="feedback-rating-text" id="feedback-rating-text" aria-live="polite"></span>
+            </div>
+            <span class="field-error" id="err-feedback-rating"></span>
+
+            <label for="feedback-comment">Your comments <span class="required-star">*</span></label>
+            <textarea id="feedback-comment" name="comment" rows="6" required maxlength="1000" placeholder="What went well? What could be better? Tell us in your own words…"></textarea>
+            <span class="feedback-counter" id="feedback-counter" aria-live="off">0 / 1000</span>
+            <span class="field-error" id="err-feedback-comment"></span>
+
+            <label id="feedback-recommend-label">Would you recommend Librowse to a friend?</label>
+            <div class="feedback-choice-row" role="radiogroup" aria-labelledby="feedback-recommend-label">
+                <label><input type="radio" name="recommend" value="Yes"> Yes</label>
+                <label><input type="radio" name="recommend" value="Maybe"> Maybe</label>
+                <label><input type="radio" name="recommend" value="No"> No</label>
+            </div>
+
+            <label for="feedback-transaction">Related transaction <span class="feedback-optional">(optional)</span></label>
+            <select id="feedback-transaction" name="transaction_id">
+                <option value="">Not about a specific transaction</option>
+            </select>
+            <span class="input-helper-text">Pick one of your own transactions if your feedback is about it.</span>
+
+            <label class="feedback-check" for="feedback-contact">
+                <input type="checkbox" id="feedback-contact" name="contact_ok">
+                <span>It&rsquo;s okay for Staff to contact me about this feedback.</span>
+            </label>
+
+            <div class="form-button-row">
+                <button type="submit" id="feedback-submit">Send Feedback</button>
+                <button type="button" id="feedback-clear" class="btn-clear">Clear</button>
+            </div>
+            <div id="feedback-status" class="feedback-status" aria-live="polite"></div>
+        </form>
+
+        <div class="feedback-history">
+            <h3>Your recent feedback</h3>
+            <ul id="feedback-history-list" class="feedback-history-list">
+                <li class="feedback-empty">Loading…</li>
+            </ul>
+        </div>
+    </section>
+</main>
+<footer>
+    <p>Librowse Book Exchange</p>
+    <p>ITS122P Final Project</p>
+</footer>
+<script src="script.js"></script>
+<script src="feedback-form.js"></script>
+</body>
+</html>

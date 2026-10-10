@@ -9,6 +9,7 @@
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
     <title>Librowse Staff Dashboard</title>
     <link rel="stylesheet" href="management.css">
+    <link rel="stylesheet" href="css/feedback.css">
 <script src="session.js"></script>
 <script src="consent.js"></script>
 </head>
@@ -28,6 +29,7 @@
             <button data-tab="transactions">Transactions</button>
             <button data-tab="refunds">Refund Requests</button>
             <button data-tab="issues">Report Issue</button>
+            <button data-tab="feedback">Feedback</button>
         </nav>
 
         <div class="management-sidebar-bottom">
@@ -223,10 +225,87 @@
                 </form>
             </div>
         </section>
+
+        <section class="management-section" data-section="feedback">
+            <div class="management-panel">
+                <h3>Share Your Feedback</h3>
+                <p class="helper">Tell us how Librowse is working for you. Your feedback is saved with the other reports and can be reviewed under Reports &amp; Forms.</p>
+                <form id="feedback-form" novalidate style="max-width:640px">
+                    <div class="management-field">
+                        <label for="feedback-topic">What is your feedback about? *</label>
+                        <select id="feedback-topic" name="topic" required>
+                            <option value="">Select a topic</option>
+                            <option value="Overall_Experience">Overall experience</option>
+                            <option value="Browsing_Search">Browsing &amp; searching for books</option>
+                            <option value="Listing_A_Book">Listing a book</option>
+                            <option value="Transactions">Buying or trading (transactions)</option>
+                            <option value="Refunds_Support">Refunds &amp; support</option>
+                            <option value="Website_Design">Website design &amp; ease of use</option>
+                            <option value="Bug_Report">Something isn&rsquo;t working (bug)</option>
+                            <option value="Suggestion">Idea or suggestion</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <span class="field-error" id="err-feedback-topic" style="display:none;color:#b0452f;font-size:13px"></span>
+                    </div>
+
+                    <div class="management-field" style="margin-top:14px">
+                        <label id="feedback-rating-label">How would you rate your experience? *</label>
+                        <div role="radiogroup" aria-labelledby="feedback-rating-label">
+                            <div class="feedback-stars">
+                                <input type="radio" name="rating" id="rate-5" value="5"><label for="rate-5" title="5 – Excellent" aria-label="5 stars">&#9733;</label>
+                                <input type="radio" name="rating" id="rate-4" value="4"><label for="rate-4" title="4 – Good" aria-label="4 stars">&#9733;</label>
+                                <input type="radio" name="rating" id="rate-3" value="3"><label for="rate-3" title="3 – Okay" aria-label="3 stars">&#9733;</label>
+                                <input type="radio" name="rating" id="rate-2" value="2"><label for="rate-2" title="2 – Fair" aria-label="2 stars">&#9733;</label>
+                                <input type="radio" name="rating" id="rate-1" value="1"><label for="rate-1" title="1 – Poor" aria-label="1 star">&#9733;</label>
+                            </div>
+                            <span class="feedback-rating-text" id="feedback-rating-text" aria-live="polite"></span>
+                        </div>
+                        <span class="field-error" id="err-feedback-rating" style="display:none;color:#b0452f;font-size:13px"></span>
+                    </div>
+
+                    <div class="management-field" style="margin-top:14px">
+                        <label for="feedback-comment">Your comments *</label>
+                        <textarea id="feedback-comment" name="comment" rows="6" required maxlength="1000" placeholder="What went well? What could be better? Tell us in your own words…"></textarea>
+                        <span class="feedback-counter" id="feedback-counter">0 / 1000</span>
+                        <span class="field-error" id="err-feedback-comment" style="display:none;color:#b0452f;font-size:13px"></span>
+                    </div>
+
+                    <div class="management-field" style="margin-top:14px">
+                        <label id="feedback-recommend-label">Would you recommend Librowse to a friend?</label>
+                        <div class="feedback-choice-row" role="radiogroup" aria-labelledby="feedback-recommend-label">
+                            <label><input type="radio" name="recommend" value="Yes"> Yes</label>
+                            <label><input type="radio" name="recommend" value="Maybe"> Maybe</label>
+                            <label><input type="radio" name="recommend" value="No"> No</label>
+                        </div>
+                    </div>
+
+                    <div class="management-field" style="margin-top:14px">
+                        <label class="feedback-check" for="feedback-contact">
+                            <input type="checkbox" id="feedback-contact" name="contact_ok">
+                            <span>It&rsquo;s okay to contact me about this feedback.</span>
+                        </label>
+                    </div>
+
+                    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+                        <button class="management-btn primary" type="submit" id="feedback-submit">Send Feedback</button>
+                        <button class="management-btn" type="button" id="feedback-clear">Clear</button>
+                    </div>
+                    <div id="feedback-status" class="feedback-status" aria-live="polite"></div>
+                </form>
+
+                <div class="feedback-history">
+                    <h3>Your recent feedback</h3>
+                    <ul id="feedback-history-list" class="feedback-history-list">
+                        <li class="feedback-empty">Loading…</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
     </main>
 </div>
 
 <div id="management-alert" class="management-alert" role="status"></div>
 <script src="management.js"></script>
+<script src="feedback-form.js"></script>
 </body>
 </html>

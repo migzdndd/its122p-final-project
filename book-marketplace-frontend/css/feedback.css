@@ -1,0 +1,82 @@
+/* =========================================================================
+   FEEDBACK FORM — star rating, character counter, history list.
+   Shared by feedback.html (customers) and the admin/staff Feedback tab.
+   ========================================================================= */
+
+.feedback-intro { max-width: 640px; }
+
+.feedback-stars {
+    display: inline-flex;
+    flex-direction: row-reverse;      /* lets "hover/checked star + all before it" work in pure CSS */
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 2px;
+}
+.feedback-stars input {              /* radios are visually hidden but keyboard-focusable */
+    position: absolute;
+    width: 1px; height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.feedback-stars label {
+    display: inline-block;
+    margin: 0;
+    padding: 0 2px;
+    font-size: 34px;
+    line-height: 1;
+    color: #d9cbb8;
+    cursor: pointer;
+    transition: color .12s, transform .12s;
+}
+.feedback-stars label:hover,
+.feedback-stars label:hover ~ label,
+.feedback-stars input:checked ~ label { color: #d9a441; }
+.feedback-stars label:hover { transform: scale(1.12); }
+.feedback-stars input:focus-visible + label { outline: 2px solid #9a7458; outline-offset: 2px; border-radius: 4px; }
+
+.feedback-rating-text { display: inline-block; margin-left: 12px; font-size: 14px; color: #8a715f; vertical-align: middle; }
+
+.feedback-choice-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.feedback-choice-row label {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 0; padding: 8px 16px;
+    border: 1px solid #d9c3a8; border-radius: 999px;
+    font-weight: 600; cursor: pointer; background: #fffaf3;
+}
+.feedback-choice-row input { width: auto; margin: 0; padding: 0; }
+.feedback-choice-row label:has(input:checked) { background: #9a7458; border-color: #9a7458; color: #fffaf3; }
+
+.feedback-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 18px; font-weight: 400; }
+.feedback-check input { width: auto; margin-top: 4px; }
+
+.feedback-counter { display: block; margin-top: 4px; font-size: 12px; color: #8a715f; text-align: right; }
+.feedback-counter.is-near-limit { color: #b0452f; font-weight: 700; }
+
+.feedback-status { margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 14px; display: none; }
+.feedback-status.success { display: block; background: #e9f1e3; color: #3f5b2f; border: 1px solid #c5d9b6; }
+.feedback-status.error   { display: block; background: #f8e6e0; color: #8e3a2b; border: 1px solid #e3b9ad; }
+
+.feedback-history { margin-top: 36px; }
+.feedback-history h3 { margin: 0 0 10px; }
+.feedback-history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.feedback-history-item { padding: 14px 16px; border: 1px solid #e3d3bf; border-radius: 12px; background: #fffaf3; }
+.feedback-history-meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; color: #8a715f; }
+.feedback-history-stars { color: #d9a441; letter-spacing: 2px; font-size: 16px; }
+.feedback-history-item p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback-badge { padding: 2px 10px; border-radius: 999px; background: #efe2d0; font-weight: 700; font-size: 12px; }
+.feedback-empty { color: #8a715f; font-style: italic; }
+
+@media (max-width: 520px) {
+    .feedback-stars label { font-size: 30px; }
+}
+
+.feedback-optional { font-weight: 400; color: #8a715f; }
+
+/* Admin / staff panel: keep the shared controls from inheriting .management-field input styles */
+.management-field .feedback-stars input { width: 1px; height: 1px; padding: 0; border: 0; }
+.management-field .feedback-choice-row input,
+.management-field .feedback-check input { width: auto; padding: 0; }
+.management-field .feedback-stars label { font-size: 34px; font-weight: 400; }
+.management-field .feedback-choice-row label { font-size: 14px; font-weight: 600; }
+.management-panel .feedback-status { max-width: 640px; }
+.management-panel .feedback-history { max-width: 760px; }

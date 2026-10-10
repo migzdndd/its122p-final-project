@@ -137,12 +137,21 @@
         finally { clearSession(); }
     }
 
+    /* Show nav links marked data-requires-login (e.g. Feedback) only while signed in. */
+    function syncLoginLinks() {
+        const signedIn = !!getToken();
+        document.querySelectorAll('[data-requires-login]').forEach(function (el) { el.hidden = !signedIn; });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncLoginLinks);
+    else syncLoginLinks();
+
     window.librowseAuth = { API_BASE, getToken, getUser, saveSession, clearSession, validateSession, requireRole, logout };
     window.librowseAuthReady = validateSession(!isPublicPage);
+    window.librowseAuthReady.then(syncLoginLinks, syncLoginLinks);
 
     window.addEventListener("pageshow", function (event) {
         // Only re-check when the page comes back from the back/forward cache
         // (e.g. after logging out); a normal load was already checked above.
-        if (event.persisted) window.librowseAuthReady = validateSession(!isPublicPage);
+        if (event.persisted) { window.librowseAuthReady = validateSession(!isPublicPage); window.librowseAuthReady.then(syncLoginLinks, syncLoginLinks); }
     });
 })();

@@ -932,7 +932,17 @@ function renderReportsTable() {
         const isUnlock = data && data.type === "unlock_request";
         const requester = um[r.submitted_by_id];
         const stillLocked = requester && requester.status === "Locked";
-        const detailsCell = isUnlock
+        const isFeedback = data && data.type === "website_feedback";
+        const feedbackStars = isFeedback && Number(data.rating) ? "\u2605".repeat(Number(data.rating)) + "\u2606".repeat(5 - Number(data.rating)) : "";
+        const feedbackCell = isFeedback
+            ? `<div class="feedback-report-cell">
+                 <div><span class="management-badge info">${mgEscape(String(data.topic || "Overall_Experience").replaceAll("_", " "))}</span>
+                 ${feedbackStars ? `<span style="color:#d9a441;letter-spacing:2px;margin-left:6px" title="${Number(data.rating)} out of 5">${feedbackStars}</span>` : ""}</div>
+                 ${data.comment ? `<div style="margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere">${mgEscape(data.comment)}</div>` : ""}
+                 <div class="muted" style="margin-top:6px">${data.recommend ? `Would recommend: ${mgEscape(data.recommend)}. ` : ""}${data.contact_ok ? "OK to contact." : "Prefers no contact."}${data.transaction_id ? ` Transaction #${Number(data.transaction_id)}.` : ""}</div>
+               </div>`
+            : "";
+        const detailsCell = isFeedback ? feedbackCell : isUnlock
             ? `<div class="unlock-request-cell"><span class="management-badge danger">Unlock request</span>
                  <div>${data.message ? `&ldquo;${mgEscape(data.message)}&rdquo;` : "<span class='muted'>No message</span>"}</div>
                  <div class="muted">Account is ${requester ? mgEscape(requester.status) : "unknown"}</div></div>`
