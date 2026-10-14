@@ -1,65 +1,94 @@
-# Librowse Book Exchange — Project Overview & Demo Guide
+# Librowse Book Exchange: Project Overview & Demo Guide
 
-**Course:** ITS122P — Web Systems and Technologies  
+**Course:** ITS122P: Web Systems and Technologies  
 **Project:** Librowse Book Exchange Web Application  
-**Tech Stack:** HTML5 / CSS3 / Vanilla JavaScript / PHP 8+ / MySQL / XML Sessions  
+**Tech Stack:** HTML5 / CSS3 / Vanilla JavaScript / PHP 8+ / MySQL & TiDB Cloud / XML Sessions / Resend API  
 
 ---
 
 ## 1. Project Overview
 
 ### 1.1 The Problem
-Buying and trading used books through chat groups or social media is unorganized and risky:
-- No centralized catalog or live inventory tracking.
-- Hard to find matching buyers, sellers, or trade partners.
-- No clear order status tracking (leading to missed deals or lost items).
-- No built-in way to report issues or request refunds.
+Buying and trading used books through chat groups or social media channels is unorganized, fragmented, and insecure:
+- No centralized catalog, real-time inventory tracking, or verified listings.
+- No structured mechanism to pair prospective buyers, sellers, or trading partners.
+- Lack of order lifecycle visibility, resulting in missed handoffs or unfulfilled transactions.
+- Absence of built-in channels for dispute mediation, refund claims, or seller verification.
+- Inadequate protection against account enumeration, credential brute-forcing, or lost credentials.
 
 ### 1.2 The Solution
-**Librowse** is a web-based book exchange platform that gives users a single place to buy, sell, and trade books with built-in moderation:
-- **Role-Based Access (RBAC):** Three user roles: **Customer**, **Staff**, and **Administrator**.
-- **Searchable Catalog:** Browse listings with instant filters for category, price, and condition (`New`, `Good`, `Acceptable`).
-- **Order & Trade Tracking:** Clear status lifecycle (`Pending`, `Accepted`, `Completed`, `Cancelled`, `Disputed`).
-- **Support & Moderation:** Built-in refund requests, dispute reports, and staff review tools.
+**Librowse** is a full-stack web-based book exchange platform that provides a single, moderated environment for purchasing, selling, and trading books:
+- **Role-Based Access Control (RBAC):** Three distinct permission tiers for **Customer**, **Staff**, and **Administrator**.
+- **Account Security & Verification:** Email verification on registration, secure time-limited password resets via transactional email, and brute-force protection that locks accounts after repeated incorrect password attempts.
+- **Searchable Catalog & Bookshelf View:** Multi-criteria book browsing with keyword search, strict multi-category selection, condition ratings (`New`, `Good`, `Acceptable`), dynamic cover rendering, and quick-view modals.
+- **Order & Trade Lifecycle Management:** Structured progression across explicit states (`Pending`, `Accepted`, `Completed`, `Cancelled`, `Disputed`).
+- **Customer Activity Dashboard:** Centralized activity hub showing live listing counts, order history, refund statuses, categorized personal inventory distribution, and search/sort filters.
+- **Staff Moderation Tools:** Dedicated portals for reviewing user dispute reports, verifying seller requests, arbitrating transaction disputes, and approving or rejecting refund claims.
+- **Administrative Governance:** System-wide management over user accounts, master book metadata, category taxonomies, formatted audit trail logs, and password reset records.
+- **Dual-Mode Cloud & Local Architecture:** Native execution on standard local PHP/MySQL stacks, with production-ready compatibility for Vercel serverless hosting and TiDB Cloud (MySQL over TLS/SSL).
 
 ---
 
 ## 2. System Architecture
 
 ```text
-[ Browser (Client) ]
-  HTML5 / CSS3 / Vanilla JavaScript (ES6+)
-       │
-       │ HTTP Requests (JSON Payloads + Bearer Token)
-       ▼
-[ PHP 8+ Backend API ]
-  REST Endpoints (/api/*.php) + PDO Prepared Statements
-       │                          │
-       ▼ (SQL Queries)            ▼ (File Locking)
-[ MySQL 8+ Database ]      [ XML Session Store ]
-  Tables & Relationships     (data/security.xml)
+               +----------------------------------------------------+
+               |                 Browser (Client)                   |
+               |  HTML5 / Modular CSS3 / Vanilla JavaScript (ES6+)  |
+               +-------------------------+--------------------------+
+                                         |
+                                         | HTTP Requests (JSON + Bearer Token)
+                                         v
+               +----------------------------------------------------+
+               |         Routing & Dispatch Gateway                 |
+               |   Local: PHP Built-in Server / XAMPP               |
+               |   Cloud: Vercel Serverless (api/index.php Gateway) |
+               +-------------------------+--------------------------+
+                                         |
+                                         v
+               +----------------------------------------------------+
+               |                PHP 8+ REST API Core                |
+               |  - dispatch.php: Request routing & validation      |
+               |  - Response.php: Standard JSON envelope            |
+               |  - Crud.php: Parameterized PDO database engine     |
+               |  - mailer.php: Resend REST API (cURL HTTP client)  |
+               +-------------+----------------------+---------------+
+                             |                      |
+            SQL over TLS/SSL |                      | File Lock (flock)
+                             v                      v
++------------------------------------+   +------------------------------------+
+|       MySQL 8+ / TiDB Cloud        |   |         XML Session Store          |
+|  - Relational tables & constraints |   |  - Token SHA-256 hashes            |
+|  - ISRG Root X1 TLS encryption     |   |  - Role & expiration metadata      |
+|  - InnoDB transactional integrity  |   |  - data/security.xml               |
++------------------------------------+   +------------------------------------+
 ```
 
 ### 2.1 Technology Breakdown
 
 - **Frontend (Client-side):**
-  - **HTML5 & CSS3:** Semantic markup and responsive layout (Grid & Flexbox) with status badges and summary cards.
-  - **Vanilla JavaScript:** Clean modular scripts without heavy frameworks. Manages session tokens in `sessionStorage`, handles real-time catalog filtering, and connects forms to API endpoints.
+  - **HTML5 & Modular CSS3:** Semantic elements, responsive CSS grid and flexbox layouts, accessible color contrast ratios meeting WCAG AA requirements, and button micro-animations.
+  - **Vanilla JavaScript (ES6+):** Zero third-party runtime frameworks. Modular controllers handle authentication (`auth.js`), session state and route guarding (`session.js`), interactive bookshelf rendering (`browse-shelf.js`), book cover processing (`book-covers.js`), cookie/privacy consent notices (`consent.js`), staff/admin operations (`management.js`), and customer metrics (`customer-dashboard.js`).
+  - **Client Token Storage:** Session tokens reside in `sessionStorage` and are automatically attached to outgoing HTTP requests via the `Authorization: Bearer <token>` header.
 
 - **Backend (Server-side):**
-  - **PHP 8+ REST API:** Standardized JSON responses via `Response.php` and centralized request dispatching via `dispatch.php`.
-  - **PDO Prepared Statements:** Parameterized queries to prevent SQL injection.
-  - **XML Session Storage:** Session tokens are hashed (SHA-256) and saved in `security.xml` with file locking (`flock`) to prevent race conditions.
+  - **PHP 8+ REST API:** Modular endpoints structured under `book-marketplace-backend/api/`, returning unified JSON envelopes through `Response.php`.
+  - **Centralized Dispatcher (`dispatch.php`):** Resolves routes, validates request methods, verifies role permissions, and normalizes input payloads.
+  - **Transactional Mailer (`mailer.php`):** Transmits email verification and password reset notifications through the Resend HTTP REST API using native PHP cURL, circumventing outbound SMTP port restrictions on serverless cloud platforms. Includes a local fallback logger for offline development.
+  - **XML Session Engine (`security.php`):** Issues cryptographically random 64-character tokens. Tokens are stored as SHA-256 hashes with expiry timestamps in `data/security.xml` using exclusive file locking (`flock`) to prevent race conditions.
 
-- **Database (MySQL 8+ InnoDB):**
-  - `USER`: Accounts, roles (`Customer`, `Staff`, `Admin`), statuses, and password hashes.
-  - `BOOKS_CATALOG`: Master catalog of book titles, authors, and ISBNs.
-  - `BOOK_CATEGORIES` & `BOOK_CATEGORY_MAP`: Category definitions and many-to-many book tags.
-  - `USER_BOOKS`: Seller inventory with condition ratings, price, and listing type (`For_sale`, `For_trade`, `Both`).
-  - `TRANSACTIONS`: Purchases and trades linking buyer, seller, items, and status.
-  - `REFUND_REQUEST`: Customer refund tickets with staff approval tracking.
-  - `REPORTS`: Dispute reports, seller verification tickets, and user feedback.
-  - `SYSTEM_RECORDS`: Administrative audit logs and system activity tracking.
+- **Database (MySQL 8+ InnoDB & TiDB Cloud):**
+  - `USER`: User profiles, role assignments (`Customer`, `Staff`, `Admin`), account statuses (`Active`, `Pending Verification`, `Suspended`, `Banned`, `Locked`), and password hashes (`PASSWORD_BCRYPT`).
+  - `BOOKS_CATALOG`: Master catalog containing titles, authors, ISBNs, and publication metadata.
+  - `BOOK_CATEGORIES` & `BOOK_CATEGORY_MAP`: Category taxonomy supporting many-to-many book categorizations.
+  - `USER_BOOKS`: User inventory entries specifying condition (`New`, `Good`, `Acceptable`), price, listing type (`For_sale`, `For_trade`, `Both`), status (`Available`, `Reserved`, `Sold`), and custom cover photo URLs.
+  - `TRANSACTIONS`: Order and trade records linking buyer, seller, items, monetary amount, status, and timestamps.
+  - `REFUND_REQUEST`: Customer refund tickets linked to transactions, tracking staff review actions and resolutions.
+  - `REPORTS`: Customer and staff issue reports, dispute filings, and seller verification applications.
+  - `SYSTEM_RECORDS`: Administrative audit logs recording critical actions, system modifications, and administrative updates.
+  - `LOGIN_ATTEMPTS`: Tracks consecutive failed login attempts per user ID, enabling automated account lockout after 3 consecutive invalid credentials.
+  - `EMAIL_VERIFICATION_TOKENS`: Stores 64-character verification tokens and expiration windows for pending accounts.
+  - `PASSWORD_RESET_TOKENS`: Manages secure, one-hour expiration password reset tokens with single-use invalidation.
 
 ---
 
@@ -67,51 +96,64 @@ Buying and trading used books through chat groups or social media is unorganized
 
 ### 3.1 Backend Services
 
-- **Authentication & Security (`security.php`):**
-  - Issues 64-character random session tokens upon login.
-  - Stores token SHA-256 hashes in `security.xml` with expiration dates.
-  - Validates `Authorization: Bearer <token>` headers on protected endpoints.
-- **CRUD Engine (`Crud.php`):**
-  - Handles standard database operations (read, create, update, delete) safely with parameter binding and column whitelisting.
-- **API Endpoints (`/api/`):**
-  - `auth.php`: Login, register, logout, and current user validation.
-  - `books_catalog.php` & `book_categories.php`: Master catalog and category mapping.
-  - `user_books.php`: Personal inventory listings for sellers.
-  - `transactions.php`: Placing orders, creating trades, and updating status.
-  - `refund_request.php` & `reports.php`: Customer support claims and disputes.
-  - `user.php` & `system_records.php`: User management and audit logs.
+- **Authentication & Security Engine (`auth.php`, `security.php`):**
+  - **Registration & Verification:** Creates accounts in `Pending Verification` status and dispatches an activation token via email.
+  - **Brute-Force Rate Limiting:** Tracks failed authentication attempts. A fourth incorrect attempt sets `USER.status = 'Locked'`, requiring administrative unlocking.
+  - **Password Recovery:** Validates user identity, generates secure reset tokens, dispatches reset links, and invalidates tokens upon successful password changes.
+  - **XML Session Security:** Validates `Authorization: Bearer <token>` headers against SHA-256 digests in `security.xml`.
+- **Database Engine (`Crud.php`):**
+  - Executes parameterized prepared statements with column whitelisting, preventing SQL injection vulnerabilities.
+- **REST API Endpoints (`/api/`):**
+  - `auth.php`: Sign in, registration, email verification, password reset, session validation, and logout.
+  - `books_catalog.php`: Master catalog search and administration.
+  - `book_categories.php`: Taxonomy management and book-to-category associations.
+  - `user_books.php`: Personal inventory management for sellers.
+  - `transactions.php`: Order submission, trade proposals, and transaction lifecycle transitions.
+  - `refund_request.php`: Customer refund ticket submission and staff adjudication.
+  - `reports.php`: Dispute ticket submission, moderation management, and seller verification.
+  - `user.php`: Profile details, role adjustments, account unlocking, and customer status updates.
+  - `system_records.php`: Audit trail retrieval with event formatters.
 
 ### 3.2 Frontend Interfaces
 
-- **Auth & Session (`auth.js`, `session.js`):**
-  - Verifies logins, stores tokens in `sessionStorage`, and routes users to their role-specific view.
-- **Marketplace Browsing (`script.js`):**
-  - Displays book cards and filters live by search keyword, category, price, and condition.
-  - Handles buying an item or submitting a trade proposal.
-- **Customer Dashboard (`customer-dashboard.js`):**
-  - Displays personal activity counters (Total Listings, Active, Sold, Pending Orders) and user inventory.
-- **Staff & Admin Management (`management.js`):**
-  - **Staff view (`staff.html`):** Manage transactions, review customer reports, and approve/reject refunds.
-  - **Admin view (`admin.html`):** Full control over user accounts, master book catalog, categories, and audit records.
+- **Authentication Suite:**
+  - `login.html`: Dual-identifier login (username or email), credential lockout warning dialogs, and automated role-based routing.
+  - `register.html`: Client-side validation, password confirmation, and verification dispatch notices.
+  - `verify-email.html`: Automated verification token validation with status indicators.
+  - `forgot-password.html` & `reset-password.html`: Token-driven password recovery with real-time feedback.
+- **Marketplace & Bookshelf:**
+  - `index.html`: Marketplace landing page highlighting featured listings and platform overview.
+  - `browse.html`: Live searchable book catalog supporting dual display modes (standard card grid and interactive bookshelf view), strict category filtering, condition selection, and modal book details.
+  - `list-book.html`: Seller listing form with image preview, master catalog lookup, and trade preference options.
+- **Customer Activity Dashboard:**
+  - `customer-dashboard.html`: Live metric cards (Total Listings, Active, Sold, Pending Transactions, Refund Tickets), personal category breakdown charts, inventory search, and sortable order lists.
+- **Staff Moderation Portal:**
+  - `staff.html`: Transaction progression panel, customer dispute review, refund claim arbitration, and staff escalation forms.
+- **Administrator Governance Portal:**
+  - `admin.html`: Complete user account administration (role modifications, account activation, unlocking locked accounts), master catalog editing, category creation, audit trail logs with human-readable event formatters, and password reset history.
 
 ---
 
 ## 4. Role Permissions Matrix
 
-| Feature | Customer | Staff | Administrator |
+| Platform Capability | Customer | Staff | Administrator |
 |---|:---:|:---:|:---:|
-| Browse & Search Catalog | Yes | Yes | Yes |
-| List Personal Books (Sale/Trade) | Yes | No | No |
-| Purchase or Trade Books | Yes | No | No |
-| View Personal Dashboard | Yes | No | No |
-| Submit Refund or Report Ticket | Yes | No | No |
-| Review & Process Refunds | No | Yes | No |
-| Moderate Reports & Disputes | No | Yes | Yes |
-| Update Transaction Status | No | Yes | Yes |
-| Submit Internal Staff Issue | No | Yes | No |
-| Manage User Roles & Accounts | No | No | Yes |
-| Edit Master Books & Categories | No | No | Yes |
-| View System Audit Records | No | No | Yes |
+| Register Account & Verify Email | Yes | Yes | Yes |
+| Request Password Reset | Yes | Yes | Yes |
+| Browse & Search Marketplace Catalog | Yes | Yes | Yes |
+| Filter by Multiple Categories & Condition | Yes | Yes | Yes |
+| Create Personal Book Listings (Sale / Trade) | Yes | No | No |
+| Purchase or Propose Book Trades | Yes | No | No |
+| View Personal Activity Dashboard | Yes | No | No |
+| Submit Refund or Dispute Tickets | Yes | No | No |
+| Moderate Customer Reports & Verification Forms | No | Yes | Yes |
+| Update Transaction Status (Advance / Mediate) | No | Yes | Yes |
+| Adjudicate & Process Refund Requests | No | Yes | Yes |
+| Submit Internal Staff Reports to Administrators | No | Yes | No |
+| Manage User Roles & Account Statuses | No | No | Yes |
+| Unlock Brute-Force Locked User Accounts | No | No | Yes |
+| Edit Master Books Catalog & Taxonomy | No | No | Yes |
+| Inspect System Audit Records & Reset Logs | No | No | Yes |
 
 ---
 
@@ -119,9 +161,10 @@ Buying and trading used books through chat groups or social media is unorganized
 
 ### Demo Test Accounts
 
-| Role | Username | Password | Default Page |
+| Role | Username | Password | Default Landing Page |
 |---|---|---|---|
 | **Customer** | `emma_clarke` | `password` | `customer-dashboard.html` |
+| **Customer** | `liam_smith` | `password` | `customer-dashboard.html` |
 | **Staff Moderator** | `priya_singh` | `password` | `staff.html` |
 | **Administrator** | `alice_wong` | `password` | `admin.html` |
 
@@ -129,46 +172,69 @@ Buying and trading used books through chat groups or social media is unorganized
 
 ### Step-by-Step Demo Walkthrough
 
-#### Step 1: Customer Journey (Buy, Trade, and Dashboard)
-1. **Login:** Go to `login.html`, log in as `emma_clarke` / `password`.
-   - The system detects the `Customer` role and redirects to `customer-dashboard.html`.
-2. **Customer Dashboard:** Review the live summary cards (Listings, Orders, Refunds) and personal inventory table.
-3. **Browse & Filter:** Go to `browse.html`.
-   - Search for a book (e.g., "Silent").
-   - Filter by condition (`Good`, `New`) and category tags (`Fiction`).
-4. **Place an Order:** Click **Buy** or **Trade** on an available listing.
-5. **Check Orders:** Open `transactions.html` to verify the order is created in `Pending` status.
-6. **Support Ticket:** Go to `support.html` and submit a sample dispute or refund request.
+#### Step 1: Customer Journey (Authentication, Browsing, Orders, Dashboard)
+1. **Sign In:** Open `login.html`, enter `emma_clarke` / `password`.
+   - The client verifies credentials and automatically redirects to `customer-dashboard.html`.
+2. **Customer Dashboard Review:**
+   - Review live summary indicators (Listings count, Active items, Sold books, Pending Orders, Refund claims).
+   - Inspect the personal category breakdown cards and sort personal inventory items by title, status, or date.
+3. **Catalog & Bookshelf Browsing:** Navigate to `browse.html`.
+   - Use the search bar to query by title or author (for example, "Silent").
+   - Toggle category checkboxes (for example, "Fiction" or "Computer Science") to demonstrate strict multi-tag filtering.
+   - Filter by condition (`New`, `Good`, `Acceptable`) and toggle between standard grid view and the interactive wooden bookshelf display.
+   - Click a book listing to open the detailed modal showing condition ratings, seller notes, and listing mode.
+4. **Place an Order or Trade Proposal:**
+   - Click **Buy** or **Trade** on an available book listing.
+   - Open `transactions.html` to confirm the transaction is initiated in `Pending` status.
+5. **Customer Support & Disputes:**
+   - Navigate to `support.html` to file a sample dispute ticket or refund claim for a transaction.
 
-#### Step 2: Staff Moderation (Orders, Disputes, and Refunds)
-1. **Login:** Log out and log in as `priya_singh` / `password`.
-   - The app opens `staff.html`.
-2. **Review Reports:** Open the **Customer Forms / Reports** tab, view the dispute from Step 1, and update it to `Under_Review` or `Resolved`.
-3. **Advance Transaction:** Open the **Transactions** tab, locate the pending order, and update it to `Accepted` or `Completed`.
-4. **Process Refund:** Open the **Refunds** tab and approve or reject a customer refund request.
-5. **Staff Escalation:** Open **Report an Issue** to show how staff report internal problems directly to admins.
+#### Step 2: Staff Moderation (Disputes, Orders, and Refunds)
+1. **Sign In:** Log out from the customer account and log in as `priya_singh` / `password`.
+   - The application automatically opens `staff.html`.
+2. **Review Customer Reports:**
+   - Open the **Customer Forms / Reports** tab.
+   - Locate the dispute filed during Step 1, inspect submitted details, and update status to `Under_Review` or `Resolved`.
+3. **Transaction Mediation:**
+   - Open the **Transactions** tab. Filter by status (`Pending`) to find the buyer's order from Step 1.
+   - Advance the order status to `Accepted` or `Completed`.
+4. **Process Refund Requests:**
+   - Open the **Refunds** tab, inspect the refund claim details, and approve or reject the request with staff notes.
+5. **Staff Escalation:**
+   - Open the **Report an Issue** section to demonstrate how staff file internal reports directly to system administrators.
 
-#### Step 3: Admin Management (Users, Catalog, and Audit Logs)
-1. **Login:** Log out and log in as `alice_wong` / `password`.
-   - The app opens `admin.html`.
-2. **User Accounts:** Open the **Users** tab to view all accounts, change roles, or toggle account status.
-3. **Master Catalog & Categories:**
-   - Under **Book Categories**, add a new category.
-   - Under **Book Catalog**, add a new book and link it to categories.
-4. **Audit Trail:** Open **System Records** to show recorded administrative and system actions.
+#### Step 3: Administrator Governance (Users, Catalog, and Audit Logs)
+1. **Sign In:** Log out from the staff account and log in as `alice_wong` / `password`.
+   - The application directs to `admin.html`.
+2. **User Account Governance & Lockout Recovery:**
+   - Open the **Users** tab to view the complete user roster with roles and statuses.
+   - Demonstrate role promotion/demotion between Customer, Staff, and Admin tiers.
+   - Demonstrate account unlocking for accounts flagged as `Locked` from failed login attempts.
+3. **Master Catalog & Category Taxonomy:**
+   - Under **Book Categories**, create a new category (for example, "Cybersecurity").
+   - Under **Book Catalog**, add a new master title, specify ISBN and author, and link it to the newly created category.
+4. **Audit Trail & System Monitoring:**
+   - Open **System Records** to show recorded administrative actions, status transitions, and user modifications formatted with human-readable action tags.
+   - Inspect the password reset and authentication token audit history.
 
 ---
 
 ## 6. Technical Defense Q&A
 
-**Q: How does the app prevent SQL Injection?**  
-> **A:** All database queries in `Crud.php` and individual API endpoints use PDO prepared statements with bound parameters. User inputs are never directly concatenated into SQL strings.
+**Q: How does the application prevent SQL Injection attacks?**  
+> **A:** All database operations inside `Crud.php` and standalone API endpoints use PDO prepared statements with explicitly bound parameters. User inputs are never directly concatenated into SQL query strings. Furthermore, table column identifiers are validated against strict whitelists before execution.
 
-**Q: How do sessions work without third-party libraries or frameworks?**  
-> **A:** When a user logs in, the backend generates a random 64-character token. The client stores this in `sessionStorage` and sends it in the `Authorization: Bearer` header. The server stores only the SHA-256 hash in `data/security.xml` with an expiration date and verifies it on protected requests.
+**Q: How are sessions maintained securely without third-party frameworks?**  
+> **A:** Upon successful authentication, the server generates a cryptographically secure 64-character random token. The client stores this token in browser `sessionStorage` and sends it via the standard `Authorization: Bearer <token>` header. The server stores only SHA-256 digests of active tokens alongside expiration timestamps in `data/security.xml`. File writes are guarded with PHP `flock` to prevent concurrency conflicts.
 
-**Q: How is database referential integrity protected?**  
-> **A:** Foreign key constraints (`ON DELETE RESTRICT` and `ON DELETE CASCADE`) are set on all relational tables. For example, deleting a book cascades to its category mappings, while active transactions prevent deleting referenced inventory items.
+**Q: How does the application protect against brute-force password guessing?**  
+> **A:** The system implements a database-backed rate-limiting mechanism via the `LOGIN_ATTEMPTS` table. When a user submits three incorrect passwords, a fourth failed attempt immediately sets `USER.status = 'Locked'`. Because the lock is persisted in the database, it survives browser reloads, IP changes, or device switches. The account remains locked until an administrator manually unlocks it via the Admin portal.
 
-**Q: Why have a separate customer dashboard instead of one general page?**  
-> **A:** To keep responsibilities clean. Customers have a focused view of their personal listings, orders, and tickets (`customer-dashboard.html`), while Staff (`staff.html`) and Admins (`admin.html`) have specialized tools for moderation and governance.
+**Q: How are transactional emails handled in serverless environments like Vercel?**  
+> **A:** Serverless cloud providers commonly block traditional outbound SMTP ports (such as ports 25, 465, and 587) to curb spam. Librowse bypasses this limitation by routing transactional emails (email verification and password reset links) through the Resend HTTP REST API using PHP native cURL over HTTPS (port 443). If the API key is not configured in local development, the service falls back gracefully to local file logging in the system temporary directory without crashing.
+
+**Q: How does the system handle database connectivity across local and cloud environments?**  
+> **A:** `config/database.php` reads connection parameters from environment variables with `.env` file fallback. When connecting to cloud databases such as TiDB Cloud Serverless, the connection enforces TLS encryption using the bundled ISRG Root X1 certificate (`isrgrootx1.pem`) and configures `MYSQL_ATTR_SSL_CA` appropriately.
+
+**Q: How is database referential integrity safeguarded?**  
+> **A:** Relational integrity is enforced directly at the InnoDB engine level using foreign key constraints with explicit `ON DELETE RESTRICT` and `ON DELETE CASCADE` rules. For example, deleting a catalog entry cascades to its taxonomy mappings, while transactions reference inventory items with strict foreign keys to prevent orphan transaction records.
