@@ -22,8 +22,10 @@ An integrated, full-stack web platform for peer-to-peer book listing, purchasing
 - **Customer Activity Dashboard (`customer-dashboard.html`):** Real-time counters (Total Listings, Active, Sold, Pending Transactions, Refund Tickets), personal category distribution stats, inventory search, and sortable order history.
 - **Staff Moderation Portal (`staff.html`):** Adjudicate customer dispute filings, verify seller applications, mediate order progression, and process refund tickets with staff notes.
 - **Admin Governance Panel (`admin.html`):** Full CRUD control over user accounts (including unlocking brute-force locked users), category taxonomies, master book catalog, formatted audit trail logs, and password reset records.
-- **Structured Transaction Lifecycle:** Transparent state progression (`Pending`, `Accepted`, `Completed`, `Cancelled`, `Disputed`) with audit tracking.
-- **Dual-Mode Local & Cloud Deployment:** Runs locally on PHP 8+ built-in server or XAMPP with MySQL, and deploys natively to **Vercel** serverless functions (`api/index.php`) backed by **TiDB Cloud** (MySQL with TLS/SSL encryption).
+- **Structured Transaction Lifecycle:** Transparent state progression (`Pending`, `Accepted`, `Completed`, `Cancelled`, `Disputed`) with single-invocation transaction creation and atomic status transitions.
+- **Modular CSS3 Architecture:** High-performance, clean CSS modules under `css/` (`layout.css`, `landing-page.css`, `bookshelf.css`, `buttons.css`, `dashboard.css`, `auth.css`, `error.css`, `style.css`) with unified equal padding tokens and zero visual regressions.
+- **Custom 404 & 301 SEO Redirection:** Comprehensive 301 permanent redirects for legacy aliases, clean URLs (`/browse`, `/login`, `/dashboard`), and an accessible, library-themed custom 404 page (`404.html`).
+- **Dual-Mode Local & Cloud Deployment:** Runs locally on PHP 8+ built-in server or XAMPP with MySQL, and deploys natively to **Vercel** serverless functions (`api/index.php`) backed by **TiDB Cloud** (distributed MySQL over TLS/SSL) with schema-probe optimizations.
 
 ---
 
@@ -31,6 +33,7 @@ An integrated, full-stack web platform for peer-to-peer book listing, purchasing
 
 ```text
 its122p-final-project/
+├── .htaccess                        # Apache configuration (301 redirects & custom 404 handler)
 ├── api/                             # Serverless routing gateway for Vercel
 │   ├── index.php                    # Serverless router dispatching to backend endpoints
 │   └── unlock_request.php           # Account unlock request endpoint
@@ -47,8 +50,18 @@ its122p-final-project/
 │   ├── setup.php                    # One-click browser database installer & seeder
 │   └── vercel.json                  # Standalone backend Vercel configuration
 ├── book-marketplace-frontend/       # Client-side Web Application
-│   ├── assets/                      # Diagrams & static images (ERD.png)
-│   ├── css/                         # Modular CSS stylesheets (layout, buttons, bookshelf, dashboard, auth)
+│   ├── assets/                      # Diagrams, icons & static graphics
+│   ├── css/                         # Modular CSS stylesheets
+│   │   ├── layout.css               # Global tokens, header/nav, search bars, footer, equal padding
+│   │   ├── landing-page.css         # Hero banners, steps grid, feature cards
+│   │   ├── bookshelf.css            # Interactive wooden shelf, 3D book covers, modal card
+│   │   ├── buttons.css              # Button variants, micro-animations, focus rings
+│   │   ├── dashboard.css            # Customer/Staff/Admin metric grids & tables
+│   │   ├── auth.css                 # Login, registration, lockout dialogs, verification
+│   │   ├── error.css                # Custom 404 error page styling & responsive layout
+│   │   └── style.css                # Modular manifest importing all CSS components
+│   ├── 404.html                     # Branded, accessible custom 404 Not Found page
+│   ├── .htaccess                    # Frontend-specific Apache rewrite rules
 │   ├── admin.html                   # Administrator management dashboard
 │   ├── staff.html                   # Staff moderation & verification dashboard
 │   ├── customer-dashboard.html      # Customer personal activity & metrics dashboard
@@ -70,13 +83,13 @@ its122p-final-project/
 │   ├── management.js                # Admin & Staff dashboard logic with log formatters
 │   ├── customer-dashboard.js        # Customer dashboard metrics & category charts
 │   ├── session.js                   # Client-side session guarding & role redirection
-│   ├── style.css                    # Consolidated marketplace stylesheet
+│   ├── style.css                    # Root modular stylesheet loader
 │   └── management.css               # Management dashboard stylesheet
 ├── docs/                            # Project Documentation
 │   ├── ProjectDraft.md              # Original project specification & requirements draft
 │   └── ADMIN_STAFF_GUIDE.md         # Guide to Admin and Staff management panels
 ├── PROJECT_OVERVIEW_AND_DEMO_GUIDE.md # Comprehensive demo presentation & architecture guide
-├── vercel.json                      # Root Vercel configuration (routing, rewrites, PHP runtime)
+├── vercel.json                      # Root Vercel configuration (clean URLs, 301 redirects, PHP runtime)
 └── README.md                        # Project documentation (this file)
 ```
 
