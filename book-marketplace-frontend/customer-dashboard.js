@@ -14,9 +14,9 @@
 
     const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const statIds = ["stat-total", "stat-active", "stat-sold", "stat-pending-listing",
-                     "stat-tx-total", "stat-tx-pending", "stat-tx-payment-pending", "stat-tx-completed", "stat-tx-cancelled",
-                     "stat-refund-pending", "stat-refund-approved", "stat-refund-other",
-                     "stat-report-pending", "stat-report-review", "stat-report-resolved"];
+        "stat-tx-total", "stat-tx-pending", "stat-tx-completed", "stat-tx-cancelled",
+        "stat-refund-pending", "stat-refund-approved", "stat-refund-other",
+        "stat-report-pending", "stat-report-review", "stat-report-resolved"];
 
     function setStat(id, value) {
         const el = document.getElementById(id);
@@ -29,8 +29,9 @@
         if (el) { el.textContent = " "; el.classList.add("stat-loading"); }
     });
 
+
     let me = null;
-    try { me = JSON.parse(sessionStorage.getItem("librowseCurrentUser") || "null"); } catch (_) {}
+    try { me = JSON.parse(sessionStorage.getItem("librowseCurrentUser") || "null"); } catch (_) { }
     if (!me || !me.user_id) {
         const title = document.getElementById("dashboard-title");
         const subtitle = document.getElementById("dashboard-subtitle");
@@ -94,27 +95,14 @@
         if (tbody) tbody.innerHTML = '<tr><td colspan="6">Couldn\'t load your listings. Refresh the page to try again.</td></tr>';
     }
 
-    /* Transactions & Payment Settlement */
+    /* Transactions you requested */
     if (txR.status === "fulfilled") {
-        const allTx = Array.isArray(txR.value) ? txR.value : [];
-        const mine = allTx.filter(t => String(t.buyer_id) === uid);
+        const mine = txR.value.filter(t => String(t.buyer_id) === uid);
         setStat("stat-tx-total", mine.length);
         setStat("stat-tx-pending", mine.filter(t => ["Pending", "Accepted", "Disputed"].includes(t.status)).length);
         setStat("stat-tx-completed", mine.filter(t => t.status === "Completed").length);
         setStat("stat-tx-cancelled", mine.filter(t => t.status === "Cancelled").length);
-
-        // Count transactions where payment settlement action is needed (as buyer to pay or seller to verify)
-        const paymentActionNeeded = allTx.filter(t => {
-            if (t.transaction_type !== "Purchase" || t.status === "Cancelled" || t.status === "Completed") return false;
-            const iAmBuyer = String(t.buyer_id) === uid;
-            const iAmSeller = String(t.seller_id) === uid;
-            const pStatus = t.payment_status || "Unpaid";
-            if (iAmBuyer && pStatus === "Unpaid") return true;
-            if (iAmSeller && pStatus === "Payment_Sent") return true;
-            return false;
-        }).length;
-        setStat("stat-tx-payment-pending", paymentActionNeeded);
-    } else ["stat-tx-total", "stat-tx-pending", "stat-tx-payment-pending", "stat-tx-completed", "stat-tx-cancelled"].forEach(id => setStat(id, "—"));
+    } else["stat-tx-total", "stat-tx-pending", "stat-tx-completed", "stat-tx-cancelled"].forEach(id => setStat(id, "—"));
 
     /* Refunds */
     if (refundsR.status === "fulfilled") {
@@ -122,7 +110,7 @@
         setStat("stat-refund-pending", mine.filter(r => r.status === "Pending").length);
         setStat("stat-refund-approved", mine.filter(r => r.status === "Approved").length);
         setStat("stat-refund-other", mine.filter(r => r.status === "Rejected").length);
-    } else ["stat-refund-pending", "stat-refund-approved", "stat-refund-other"].forEach(id => setStat(id, "—"));
+    } else["stat-refund-pending", "stat-refund-approved", "stat-refund-other"].forEach(id => setStat(id, "—"));
 
     /* Reports — every closed outcome counts as resolved */
     if (reportsR.status === "fulfilled") {
@@ -130,5 +118,5 @@
         setStat("stat-report-pending", mine.filter(r => r.status === "Pending").length);
         setStat("stat-report-review", mine.filter(r => r.status === "Under_Review").length);
         setStat("stat-report-resolved", mine.filter(r => ["Resolved", "Approved", "Rejected", "Dismissed"].includes(r.status)).length);
-    } else ["stat-report-pending", "stat-report-review", "stat-report-resolved"].forEach(id => setStat(id, "—"));
+    } else["stat-report-pending", "stat-report-review", "stat-report-resolved"].forEach(id => setStat(id, "—"));
 })();
