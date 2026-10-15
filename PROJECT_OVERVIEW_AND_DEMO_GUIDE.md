@@ -23,7 +23,8 @@ Buying and trading used books through informal chat groups or social media chann
 - **Account Security & Verification:** Email verification on registration, secure time-limited password resets via transactional email, and brute-force protection that locks accounts after repeated incorrect password attempts.
 - **Searchable Catalog & Bookshelf View:** Multi-criteria book browsing with keyword search, strict multi-category selection, condition ratings (`New`, `Good`, `Acceptable`), dynamic cover rendering, and quick-view modals.
 - **Order & Trade Lifecycle Management:** Structured progression across explicit states (`Pending`, `Accepted`, `Completed`, `Cancelled`, `Disputed`) with single-invocation transaction creation and atomic inventory status transitions.
-- **Customer Activity Dashboard:** Centralized activity hub showing live listing counts, order history, refund statuses, categorized personal inventory distribution, and search/sort filters.
+- **G2G Marketplace Payment Settlement Section:** Integrated peer-to-peer settlement workflow modeled after the G2G marketplace. Buyers view seller payment instructions, submit proof via GCash, Maya, Bank Transfer, or Cash with reference codes and receipt notes. Sellers verify payment received or flag invalid proof with live 4-stage stepper indicators (`Order Placed` -> `Payment Sent` -> `Seller Verified` -> `Completed`).
+- **Customer Activity Dashboard:** Centralized activity hub showing live listing counts, order history, refund statuses, action-needed payment settlement badges, categorized personal inventory distribution, and search/sort filters.
 - **Staff Moderation Tools:** Dedicated portals for reviewing user dispute reports, verifying seller requests, arbitrating transaction disputes, and approving or rejecting refund claims.
 - **Administrative Governance:** System-wide management over user accounts, master book metadata, category taxonomies, formatted audit trail logs, and password reset records.
 - **Modular CSS Architecture:** High-performance, decoupled styling architecture organized into maintainable modules with standardized equal padding, consistent spacing tokens, and custom theme variables.
@@ -103,7 +104,7 @@ Buying and trading used books through informal chat groups or social media chann
   - `BOOKS_CATALOG`: Master catalog containing titles, authors, ISBNs, and publication metadata.
   - `BOOK_CATEGORIES` & `BOOK_CATEGORY_MAP`: Category taxonomy supporting many-to-many book categorizations.
   - `USER_BOOKS`: User inventory entries specifying condition (`New`, `Good`, `Acceptable`), price, listing type (`For_sale`, `For_trade`, `Both`), status (`Available`, `In_transaction`, `Sold`, `Traded`), and custom cover photo URLs.
-  - `TRANSACTIONS`: Order and trade records linking buyer, seller, items, monetary amount, status, and timestamps.
+  - `TRANSACTIONS`: Order and trade records linking buyer, seller, items, monetary amount, order status, timestamps, and G2G payment settlement fields (`payment_status`, `payment_method`, `payment_reference`, `payment_notes`, `paid_at`, `payment_verified_at`).
   - `REFUND_REQUEST`: Customer refund tickets linked to transactions, tracking staff review actions and resolutions.
   - `REPORTS`: Customer and staff issue reports, dispute filings, and seller verification applications.
   - `SYSTEM_RECORDS`: Administrative audit logs recording critical actions, system modifications, and administrative updates.
@@ -131,7 +132,7 @@ Buying and trading used books through informal chat groups or social media chann
   - `books_catalog.php`: Master catalog search and administration.
   - `book_categories.php`: Taxonomy management and book-to-category associations.
   - `user_books.php`: Personal inventory management for sellers.
-  - `transactions.php`: Order submission, trade proposals, and transaction lifecycle transitions with single-call guarantee.
+  - `transactions.php`: Order submission, trade proposals, single-call lifecycle transitions, and G2G peer-to-peer payment settlement (`submit_payment`, `verify_payment`, `set_payment_details`).
   - `refund_request.php`: Customer refund ticket submission and staff adjudication.
   - `reports.php`: Dispute ticket submission, moderation management, and seller verification.
   - `user.php`: Profile details, role adjustments, account unlocking, and customer status updates.
@@ -149,9 +150,9 @@ Buying and trading used books through informal chat groups or social media chann
   - `index.html`: Marketplace landing page highlighting featured listings and platform overview.
   - `browse.html`: Live searchable book catalog supporting dual display modes (standard card grid and interactive bookshelf view), strict category filtering, condition selection, and modal book details.
   - `list-book.html`: Seller listing form with image preview, master catalog lookup, and trade preference options.
-  - `transactions.html`: Order tracking, trade proposals, and receipt viewing.
+  - `transactions.html`: Order tracking, trade proposals, receipt viewing, and interactive G2G payment settlement modal with live progress stepper.
 - **Customer Activity Dashboard:**
-  - `customer-dashboard.html`: Live metric cards (Total Listings, Active, Sold, Pending Transactions, Refund Tickets), personal category breakdown charts, inventory search, and sortable order lists.
+  - `customer-dashboard.html`: Live metric cards (Total Listings, Active, Sold, Pending Transactions, Settle Payment action alerts, Refund Tickets), personal category breakdown charts, inventory search, and sortable order lists.
 - **Staff Moderation Portal:**
   - `staff.html`: Transaction progression panel, customer dispute review, refund claim arbitration, and staff escalation forms.
 - **Administrator Governance Portal:**
@@ -211,12 +212,22 @@ Buying and trading used books through informal chat groups or social media chann
    - Toggle category checkboxes (for example, "Fiction" or "Computer Science") to demonstrate strict multi-tag filtering.
    - Filter by condition (`New`, `Good`, `Acceptable`) and toggle between standard grid view and the interactive wooden bookshelf display.
    - Click a book listing to open the detailed modal showing condition ratings, seller notes, and listing mode.
-4. **Place an Order or Trade Proposal:**
-   - Click **Buy** or **Trade** on an available book listing.
-   - Open `transactions.html` to confirm the transaction is initiated in `Pending` status.
-5. **Customer Support & Disputes:**
+4. **Place an Order & Settle Payment (G2G Marketplace Flow):**
+   - Click **Buy** on an available book listing.
+   - Open `transactions.html` (or click **Settle Payment** from the Customer Dashboard).
+   - Click **💳 Settle Payment** to open the G2G settlement dialog.
+   - Review the 4-step progress stepper (`Order Placed` -> `Payment Sent` -> `Seller Verified` -> `Completed`).
+   - Select a payment method (`GCash`, `Maya`, `Bank Transfer`, or `Cash on Meetup`), enter a mock reference number (e.g. `GCASH-98213749`), add optional notes, and click **Submit Payment Proof & Notify Seller**.
+   - Observe the live payment badge change to `⏳ Verification Pending`.
+5. **Seller Payment Verification & Status Update:**
+   - Sign into the seller's account (e.g. `carlos_mendoza` / `password`).
+   - In `transactions.html`, locate the order flagged with **🔍 Verify Payment**.
+   - Click to open the settlement modal: inspect the buyer's reference badge, payment method, and submission timestamp.
+   - Click **✓ Confirm Payment Received**: the system records the verification timestamp, updates payment status to `Payment_Received`, and advances the order to `Accepted`.
+   - Optionally test the **Configure Payment Instructions** accordion to save seller GCash/Bank account numbers for future buyers.
+6. **Customer Support & Disputes:**
    - Navigate to `support.html` to file a sample dispute ticket or refund claim for a transaction.
-6. **Error Page Demonstration:**
+7. **Error Page Demonstration:**
    - Navigate to any non-existent URL (for example, `/browse-missing` or `/random-page`) to display the custom branded 404 page with quick navigation back to the marketplace.
 
 #### Step 2: Staff Moderation (Disputes, Orders, and Refunds)

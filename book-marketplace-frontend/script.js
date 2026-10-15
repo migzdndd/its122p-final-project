@@ -1545,19 +1545,29 @@ async function loadTransactions() {
     const list = document.getElementById("transaction-list");
     if (!list) return;
     if (!currentUser || !sessionStorage.getItem(SESSION_TOKEN_KEY)) {
-        list.innerHTML = `<tr><td colspan="7">Sign in to view your transaction history.</td></tr>`;
+        list.innerHTML = `<tr><td colspan="8">Sign in to view your transaction history.</td></tr>`;
         return;
     }
-    list.innerHTML = loadingRow(7, "Loading your transactions…");
+    list.innerHTML = loadingRow(8, "Loading your transactions…");
     try {
         const all = await apiRequest("transactions.php");
         const me = Number(currentUser.user_id);
         transactions = (Array.isArray(all) ? all : []).filter(t =>
-            Number(t.buyer_id) === me || isMyListing(t.requested_inventory_id) || isMyListing(t.offered_inventory_id)
+            Number(t.buyer_id) === me || Number(t.seller_id) === me || isMyListing(t.requested_inventory_id) || isMyListing(t.offered_inventory_id)
         ).sort((x, y) => Number(y.transaction_id) - Number(x.transaction_id));
         renderTransactions(transactions);
+
+        // Check if navigated with ?settle={id} or ?tx={id}
+        const params = new URLSearchParams(window.location.search);
+        const settleId = params.get("settle") || params.get("tx");
+        if (settleId) {
+            const target = transactions.find(t => String(t.transaction_id) === String(settleId));
+            if (target) {
+                openSettlementModal(target);
+            }
+        }
     } catch (error) {
-        list.innerHTML = `<tr><td colspan="7">Couldn't load your transactions: ${escapeHTML(error.message)}
+        list.innerHTML = `<tr><td colspan="8">Couldn't load your transactions: ${escapeHTML(error.message)}
             <button type="button" class="inline-retry" id="tx-retry">Try again</button></td></tr>`;
         document.getElementById("tx-retry")?.addEventListener("click", loadTransactions);
     }
@@ -1567,39 +1577,554 @@ function renderTransactions(transactionData) {
     const list = document.getElementById("transaction-list");
     if (!list) return;
     if (!transactionData.length) {
-        list.innerHTML = `<tr><td colspan="7">No transactions yet. <a href="browse.html">Browse books</a> to buy or trade.</td></tr>`;
+        list.innerHTML = `<tr><td colspan="8">No transactions yet. <a href="browse.html">Browse books</a> to buy or trade.</td></tr>`;
         return;
     }
     const me = Number(currentUser.user_id);
     list.innerHTML = "";
     transactionData.forEach(t => {
         const iAmBuyer = Number(t.buyer_id) === me;
-        let book = escapeHTML(listingTitle(t.requested_inventory_id));
-        if (t.transaction_type === "Trade" && t.offered_inventory_id) {
+        const iAmSeller = Number(t.seller_id) === me || isMyListing(t.requested_inventory_id);
+        const isTrade = t.transaction_type === "Trade";
+        let book = escapeHTML(t.requested_book_title || listingTitle(t.requested_inventory_id));
+        if (isTrade && t.offered_inventory_id) {
             book += `<div class="tx-sub">in exchange for ${escapeHTML(listingTitle(t.offered_inventory_id))}</div>`;
         }
+
+        // Payment status badge
+        let paymentBadge = "";
+        if (isTrade) {
+            paymentBadge = `<span class="payment-badge payment-trade">Trade</span>`;
+        } else if (t.payment_status === "Payment_Received") {
+            paymentBadge = `<span class="payment-badge payment-received">✓ Received</span>`;
+        } else if (t.payment_status === "Payment_Sent") {
+            paymentBadge = `<span class="payment-badge payment-sent">⏳ Verification Pending</span>`;
+        } else {
+            paymentBadge = `<span class="payment-badge payment-unpaid">● Unpaid</span>`;
+        }
+
+        let roleLabel = "Participant";
+        if (iAmBuyer && iAmSeller) {
+            roleLabel = "Buyer & Seller";
+        } else if (iAmBuyer) {
+            roleLabel = "Buyer";
+        } else if (iAmSeller) {
+            roleLabel = "Seller";
+        }
+
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>#${escapeHTML(t.transaction_id)}</td>
             <td>${book}</td>
             <td>${escapeHTML(t.transaction_type)}</td>
-            <td>${t.transaction_type === "Trade" ? "—" : escapeHTML(formatPrice(t.amount_paid))}</td>
+            <td>${isTrade ? "—" : escapeHTML(formatPrice(t.amount_paid))}</td>
             <td><span class="tx-status tx-${escapeHTML(String(t.status).toLowerCase())}">${escapeHTML(TX_STATUS_TEXT[t.status] || t.status)}</span></td>
-            <td>${iAmBuyer ? "You requested it" : "Request for your book"}</td>
+            <td>${paymentBadge}</td>
+            <td>${roleLabel}</td>
             <td class="transaction-action"></td>`;
+
         const action = row.querySelector(".transaction-action");
+
+        if (!isTrade) {
+            const settleBtn = document.createElement("button");
+            settleBtn.type = "button";
+            settleBtn.className = "btn-small btn-settle";
+
+            if (iAmBuyer && (!t.payment_status || t.payment_status === "Unpaid")) {
+                settleBtn.className += " btn-primary-solid";
+                settleBtn.textContent = "💳 Settle Payment";
+            } else if (iAmSeller && t.payment_status === "Payment_Sent") {
+                settleBtn.className += " btn-primary-solid";
+                settleBtn.textContent = "🔍 Verify Payment";
+            } else if (t.payment_status === "Payment_Received") {
+                settleBtn.textContent = "✓ Payment Info";
+            } else {
+                settleBtn.textContent = "Payment Details";
+            }
+
+            settleBtn.addEventListener("click", () => openSettlementModal(t));
+            action.appendChild(settleBtn);
+        }
+
         if (iAmBuyer && t.status === "Pending") {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "btn-small";
             btn.textContent = "Cancel";
+            btn.style.marginLeft = "4px";
             btn.addEventListener("click", () => cancelTransaction(t.transaction_id, btn));
             action.appendChild(btn);
-        } else {
+        }
+
+        if (!action.hasChildNodes()) {
             action.textContent = "—";
         }
+
         list.appendChild(row);
     });
+}
+
+function openSettlementModal(t) {
+    const dialog = document.getElementById("settlement-dialog");
+    if (!dialog) return;
+
+    const me = currentUser ? Number(currentUser.user_id) : 0;
+    const iAmBuyer = Number(t.buyer_id) === me;
+    const iAmSeller = Number(t.seller_id) === me || isMyListing(t.requested_inventory_id);
+    const bookTitle = t.requested_book_title || listingTitle(t.requested_inventory_id);
+    const formattedPrice = formatPrice(t.amount_paid);
+    const isTrade = t.transaction_type === "Trade";
+    const paymentStatus = t.payment_status || "Unpaid";
+    const paymentMethod = t.payment_method || "GCash";
+    const paymentReference = t.payment_reference || "";
+    const paymentNotes = t.payment_notes || "";
+
+    // Stepper logic
+    let s1 = "step-complete";
+    let s2 = "", s3 = "", s4 = "";
+    let l1 = "step-line-active", l2 = "", l3 = "";
+
+    if (paymentStatus === "Payment_Received") {
+        s2 = "step-complete";
+        s3 = "step-complete";
+        l2 = "step-line-active";
+        if (t.status === "Completed") {
+            s4 = "step-complete";
+            l3 = "step-line-active";
+        } else {
+            s4 = "step-active";
+        }
+    } else if (paymentStatus === "Payment_Sent") {
+        s2 = "step-complete";
+        s3 = "step-active";
+        l2 = "step-line-active";
+    } else {
+        s2 = "step-active";
+    }
+
+    let roleBadge = "";
+    if (iAmBuyer && iAmSeller) {
+        roleBadge = `<span class="payment-badge" style="background:#e0e7ff;color:#3730a3;">Buyer & Seller</span>`;
+    } else if (iAmBuyer) {
+        roleBadge = `<span class="payment-badge" style="background:#dbeafe;color:#1e40af;">You are Buyer</span>`;
+    } else if (iAmSeller) {
+        roleBadge = `<span class="payment-badge" style="background:#fef3c7;color:#92400e;">You are Seller</span>`;
+    } else {
+        roleBadge = `<span class="payment-badge" style="background:#f3f4f6;color:#4b5563;">Participant</span>`;
+    }
+
+    let contentHTML = `
+        <div class="settlement-header">
+            <div>
+                <h3 id="settlement-title">Payment Settlement &mdash; Order #${escapeHTML(t.transaction_id)}</h3>
+                <div style="margin-top:4px;">${roleBadge}</div>
+            </div>
+            <button type="button" class="btn-small" id="settlement-close-btn" aria-label="Close dialog" style="font-size:18px;line-height:1;padding:4px 10px;cursor:pointer;">&times;</button>
+        </div>
+        <div class="settlement-content">
+            <!-- Stepper -->
+            <div class="settlement-stepper" aria-label="Settlement Progress">
+                <div class="step ${s1}">
+                    <div class="step-num">${s1 === "step-complete" ? "✓" : "1"}</div>
+                    <div class="step-label">Order Placed</div>
+                </div>
+                <div class="step-line ${l1}"></div>
+                <div class="step ${s2}">
+                    <div class="step-num">${s2 === "step-complete" ? "✓" : "2"}</div>
+                    <div class="step-label">Payment Sent</div>
+                </div>
+                <div class="step-line ${l2}"></div>
+                <div class="step ${s3}">
+                    <div class="step-num">${s3 === "step-complete" ? "✓" : "3"}</div>
+                    <div class="step-label">Seller Verified</div>
+                </div>
+                <div class="step-line ${l3}"></div>
+                <div class="step ${s4}">
+                    <div class="step-num">${s4 === "step-complete" ? "✓" : "4"}</div>
+                    <div class="step-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="settlement-summary">
+                <div class="settlement-summary-main">
+                    <h4>${escapeHTML(bookTitle)}</h4>
+                    <p><strong>Order Status:</strong> ${escapeHTML(t.status)}</p>
+                    <p><strong>Buyer:</strong> ${escapeHTML(t.buyer_username || (iAmBuyer ? currentUser.username : "Buyer #" + t.buyer_id))} &nbsp;&bull;&nbsp; <strong>Seller:</strong> ${escapeHTML(t.seller_username || (iAmSeller ? currentUser.username : "Seller #" + (t.seller_id || "—")))}</p>
+                </div>
+                <div class="settlement-summary-price">
+                    <span style="font-size:11.5px;color:var(--muted);text-transform:uppercase;font-weight:700;">Settlement Amount</span>
+                    <span class="settlement-price-amount">${escapeHTML(formattedPrice)}</span>
+                </div>
+            </div>
+    `;
+
+    if (isTrade) {
+        contentHTML += `
+            <div class="payment-alert payment-alert-neutral">
+                <h4>Book Exchange (Trade)</h4>
+                <p>This transaction is a book exchange. No cash settlement is required. Please coordinate hand-off or delivery with the other party.</p>
+            </div>
+        `;
+    } else {
+        // Buyer experience
+        if (iAmBuyer) {
+            if (paymentStatus === "Payment_Received") {
+                contentHTML += `
+                    <div class="payment-alert payment-alert-success">
+                        <h4>✓ Payment Confirmed by Seller</h4>
+                        <p>The seller verified receipt of your payment on <strong>${escapeHTML(t.payment_verified_at || "recently")}</strong>. Your order is being arranged.</p>
+                    </div>
+                    <div class="payment-details-card">
+                        <p><strong>Payment Method:</strong> ${escapeHTML(t.payment_method || "—")}</p>
+                        <p><strong>Reference Code:</strong> <span class="ref-badge">${escapeHTML(t.payment_reference || "—")}</span></p>
+                        ${t.payment_notes ? `<p><strong>Notes / Remarks:</strong> ${escapeHTML(t.payment_notes)}</p>` : ""}
+                        ${t.paid_at ? `<p><strong>Paid At:</strong> ${escapeHTML(t.paid_at)}</p>` : ""}
+                    </div>
+                `;
+            } else if (paymentStatus === "Payment_Sent") {
+                contentHTML += `
+                    <div class="payment-alert payment-alert-info">
+                        <h4>⏳ Payment Proof Submitted &mdash; Awaiting Seller Verification</h4>
+                        <p>You have submitted payment details. The seller will verify receipt on their account and confirm.</p>
+                    </div>
+                    <div class="payment-details-card">
+                        <p><strong>Payment Method:</strong> ${escapeHTML(t.payment_method || "—")}</p>
+                        <p><strong>Reference / Transaction Code:</strong> <span class="ref-badge">${escapeHTML(t.payment_reference || "—")}</span></p>
+                        ${t.payment_notes ? `<p><strong>Notes:</strong> ${escapeHTML(t.payment_notes)}</p>` : ""}
+                        ${t.paid_at ? `<p><strong>Submitted At:</strong> ${escapeHTML(t.paid_at)}</p>` : ""}
+                    </div>
+                    <details style="margin-top:12px;background:#fff;border:1px solid var(--rule);padding:12px;border-radius:8px;">
+                        <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#2563eb;">Need to update your reference code or payment note?</summary>
+                        <form id="settlement-buyer-form" style="margin-top:12px;">
+                            <div class="form-group" style="margin-bottom:10px;">
+                                <label for="buyer-p-method" style="font-weight:600;font-size:12.5px;">Payment Method</label>
+                                <select id="buyer-p-method" class="form-control" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--rule);">
+                                    <option value="GCash" ${paymentMethod === "GCash" ? "selected" : ""}>GCash</option>
+                                    <option value="Maya" ${paymentMethod === "Maya" ? "selected" : ""}>Maya</option>
+                                    <option value="Bank Transfer" ${paymentMethod === "Bank Transfer" ? "selected" : ""}>Bank Transfer (BDO / BPI / UnionBank)</option>
+                                    <option value="Cash on Meetup" ${paymentMethod === "Cash on Meetup" ? "selected" : ""}>Cash on Meetup / Handshake</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:10px;">
+                                <label for="buyer-p-ref" style="font-weight:600;font-size:12.5px;">Updated Reference / Receipt No.</label>
+                                <input type="text" id="buyer-p-ref" class="form-control" value="${escapeHTML(paymentReference)}" required style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--rule);">
+                            </div>
+                            <div class="form-group" style="margin-bottom:12px;">
+                                <label for="buyer-p-notes" style="font-weight:600;font-size:12.5px;">Notes</label>
+                                <input type="text" id="buyer-p-notes" class="form-control" value="${escapeHTML(paymentNotes)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--rule);">
+                            </div>
+                            <button type="submit" class="btn-small btn-primary-solid">Update Reference</button>
+                        </form>
+                    </details>
+                `;
+            } else {
+                // Unpaid
+                contentHTML += `
+                    <div class="payment-alert payment-alert-warning">
+                        <h4>Payment Required</h4>
+                        <p>Please transfer <strong>${escapeHTML(formattedPrice)}</strong> to the seller using their preferred payment instructions below. Once sent, enter your reference number so the seller can verify and release your order.</p>
+                    </div>
+                `;
+                if (paymentNotes && !iAmSeller) {
+                    contentHTML += `
+                        <div class="seller-instructions-card">
+                            <strong style="display:block;margin-bottom:4px;">Seller's Payment Instructions:</strong>
+                            ${escapeHTML(paymentNotes)}
+                        </div>
+                    `;
+                }
+                contentHTML += `
+                    <form id="settlement-buyer-form" style="background:#fff;border:1px solid var(--rule);padding:16px;border-radius:10px;">
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;">Select Payment Method:</label>
+                            <div class="payment-method-selector">
+                                <label><input type="radio" name="p-method" value="GCash" checked> GCash</label>
+                                <label><input type="radio" name="p-method" value="Maya"> Maya</label>
+                                <label><input type="radio" name="p-method" value="Bank Transfer"> Bank Transfer</label>
+                                <label><input type="radio" name="p-method" value="Cash on Meetup"> Cash on Meetup</label>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label for="buyer-p-ref" style="display:block;font-weight:700;font-size:13px;margin-bottom:4px;">Payment Reference / Receipt Number: <span style="color:#dc2626;">*</span></label>
+                            <input type="text" id="buyer-p-ref" placeholder="e.g. 1002 9384 1029 or Instapay Ref" required style="width:100%;box-sizing:border-box;padding:10px;border-radius:6px;border:1px solid var(--rule);font-family:var(--font-mono, monospace);">
+                            <small style="color:var(--muted);font-size:12px;margin-top:4px;display:block;">Found in your GCash / Maya / Bank app transaction confirmation.</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label for="buyer-p-notes" style="display:block;font-weight:700;font-size:13px;margin-bottom:4px;">Additional Notes (Optional):</label>
+                            <input type="text" id="buyer-p-notes" placeholder="e.g. Sent via Juan Dela Cruz, 0917-xxx-xxxx" style="width:100%;box-sizing:border-box;padding:9px;border-radius:6px;border:1px solid var(--rule);">
+                        </div>
+                        <button type="submit" class="btn-primary-solid btn-full" id="btn-submit-buyer-payment">Submit Payment Proof & Notify Seller</button>
+                    </form>
+                `;
+            }
+        }
+
+        // Seller experience
+        if (iAmSeller) {
+            contentHTML += `
+                <div style="margin-top:20px;border-top:1px dashed var(--rule);padding-top:16px;">
+                    <h4 style="margin:0 0 10px;font-size:15px;color:var(--ink);">Seller Settlement Controls</h4>
+            `;
+
+            if (paymentStatus === "Payment_Sent") {
+                contentHTML += `
+                    <div class="payment-alert payment-alert-info">
+                        <h4>Buyer Has Submitted Payment Proof!</h4>
+                        <p>The buyer indicated they transferred <strong>${escapeHTML(formattedPrice)}</strong> via <strong>${escapeHTML(t.payment_method || "e-wallet")}</strong>. Please verify receipt in your account.</p>
+                    </div>
+                    <div class="payment-details-card">
+                        <p><strong>Payment Method:</strong> ${escapeHTML(t.payment_method || "—")}</p>
+                        <p><strong>Buyer Reference Code:</strong> <span class="ref-badge">${escapeHTML(t.payment_reference || "—")}</span></p>
+                        ${t.payment_notes ? `<p><strong>Buyer Notes:</strong> ${escapeHTML(t.payment_notes)}</p>` : ""}
+                        ${t.paid_at ? `<p><strong>Submitted At:</strong> ${escapeHTML(t.paid_at)}</p>` : ""}
+                        <div class="seller-actions-group">
+                            <button type="button" class="btn-success-solid" id="btn-seller-verify">✓ Confirm Payment Received (${escapeHTML(formattedPrice)})</button>
+                            <button type="button" class="btn-danger-outline" id="btn-seller-reject">✗ Flag as Unpaid / Invalid Proof</button>
+                        </div>
+                    </div>
+                `;
+            } else if (paymentStatus === "Payment_Received") {
+                contentHTML += `
+                    <div class="payment-alert payment-alert-success">
+                        <h4>Payment Received & Confirmed</h4>
+                        <p>You verified this payment on <strong>${escapeHTML(t.payment_verified_at || "recently")}</strong>.</p>
+                    </div>
+                    <div class="payment-details-card">
+                        <p><strong>Method:</strong> ${escapeHTML(t.payment_method || "—")} &nbsp;&bull;&nbsp; <strong>Reference:</strong> <span class="ref-badge">${escapeHTML(t.payment_reference || "—")}</span></p>
+                        <div class="seller-actions-group" style="margin-top:10px;">
+                            <button type="button" class="btn-danger-outline" id="btn-seller-revert" style="font-size:12px;padding:6px 12px;">Change back to Unpaid</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                contentHTML += `
+                    <div class="payment-alert payment-alert-neutral">
+                        <h4>Awaiting Buyer Payment</h4>
+                        <p>The buyer has not yet submitted payment proof. Once the buyer sends payment, their reference code will show here for your verification.</p>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <button type="button" class="btn-small btn-success-solid" id="btn-seller-manual-paid">✓ Mark as Paid & Received (Manual / Outside Payment)</button>
+                    </div>
+                `;
+            }
+
+            contentHTML += `
+                <details style="margin-top:14px;background:#fff;border:1px solid var(--rule);padding:12px;border-radius:8px;">
+                    <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#2563eb;">Configure Payment Instructions for Buyer</summary>
+                    <form id="seller-instructions-form" style="margin-top:10px;">
+                        <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Enter your GCash / Maya / Bank details so buyers know where to transfer:</p>
+                        <textarea id="seller-instructions-text" rows="3" style="width:100%;box-sizing:border-box;padding:8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;" placeholder="e.g. GCash: 0917-123-4567 (Juan D.) or BPI: 1234-5678-90">${escapeHTML(paymentNotes || "")}</textarea>
+                        <button type="submit" class="btn-small btn-primary-solid" style="margin-top:8px;">Save Payment Instructions</button>
+                    </form>
+                </details>
+            </div>
+            `;
+        } else if (!iAmBuyer) {
+            // Participant or observer view
+            contentHTML += `
+                <div class="payment-details-card" style="margin-top:16px;">
+                    <p><strong>Payment Status:</strong> ${escapeHTML(paymentStatus)}</p>
+                    <p><strong>Method:</strong> ${escapeHTML(t.payment_method || "—")}</p>
+                    <p><strong>Reference:</strong> <span class="ref-badge">${escapeHTML(t.payment_reference || "—")}</span></p>
+                    ${t.payment_notes ? `<p><strong>Notes:</strong> ${escapeHTML(t.payment_notes)}</p>` : ""}
+                </div>
+            `;
+        }
+    }
+
+    contentHTML += `</div>`; // end settlement-content
+
+    dialog.innerHTML = contentHTML;
+
+    // Attach event listeners
+    const closeBtn = dialog.querySelector("#settlement-close-btn");
+    closeBtn?.addEventListener("click", () => dialog.close());
+
+    // Buyer submission listener
+    const buyerForm = dialog.querySelector("#settlement-buyer-form");
+    buyerForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const pMethodRadio = buyerForm.querySelector("input[name='p-method']:checked");
+        const pMethodSelect = buyerForm.querySelector("#buyer-p-method");
+        const pMethod = pMethodRadio ? pMethodRadio.value : (pMethodSelect ? pMethodSelect.value : "GCash");
+        const pRef = buyerForm.querySelector("#buyer-p-ref")?.value.trim();
+        const pNotes = buyerForm.querySelector("#buyer-p-notes")?.value.trim();
+
+        if (!pRef) {
+            alert("Please enter your payment reference code or transaction receipt number.");
+            return;
+        }
+
+        const submitBtn = buyerForm.querySelector("button[type='submit']");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Submitting proof…";
+        }
+
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "submit_payment",
+                    payment_method: pMethod,
+                    payment_reference: pRef,
+                    payment_notes: pNotes
+                })
+            });
+            alert("Payment proof submitted successfully! The seller has been notified to verify your payment.");
+            dialog.close();
+            await loadTransactions();
+        } catch (err) {
+            alert("Failed to submit payment: " + err.message);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Payment Proof";
+            }
+        }
+    });
+
+    // Seller verify button
+    const sellerVerifyBtn = dialog.querySelector("#btn-seller-verify");
+    sellerVerifyBtn?.addEventListener("click", async () => {
+        if (!confirm(`Confirm that you have received payment of ${formattedPrice} for Order #${t.transaction_id}?`)) return;
+        sellerVerifyBtn.disabled = true;
+        sellerVerifyBtn.textContent = "Verifying…";
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "verify_payment",
+                    payment_status: "Payment_Received",
+                    advance_order: true
+                })
+            });
+            alert("Payment confirmed received! Order is now updated.");
+            dialog.close();
+            await loadTransactions();
+        } catch (err) {
+            alert("Failed to verify payment: " + err.message);
+            sellerVerifyBtn.disabled = false;
+            sellerVerifyBtn.textContent = "✓ Confirm Payment Received";
+        }
+    });
+
+    // Seller reject/flag button
+    const sellerRejectBtn = dialog.querySelector("#btn-seller-reject");
+    sellerRejectBtn?.addEventListener("click", async () => {
+        const reason = prompt("Enter a reason for the buyer (e.g. Reference code not found in GCash):");
+        if (reason === null) return;
+        sellerRejectBtn.disabled = true;
+        sellerRejectBtn.textContent = "Updating…";
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "verify_payment",
+                    payment_status: "Unpaid",
+                    payment_notes: reason
+                })
+            });
+            alert("Payment flagged as Unpaid. Buyer has been notified.");
+            dialog.close();
+            await loadTransactions();
+        } catch (err) {
+            alert("Failed to update status: " + err.message);
+            sellerRejectBtn.disabled = false;
+            sellerRejectBtn.textContent = "✗ Flag as Unpaid / Invalid Proof";
+        }
+    });
+
+    // Seller manual mark as paid
+    const sellerManualPaidBtn = dialog.querySelector("#btn-seller-manual-paid");
+    sellerManualPaidBtn?.addEventListener("click", async () => {
+        if (!confirm(`Mark payment of ${formattedPrice} as received manually?`)) return;
+        sellerManualPaidBtn.disabled = true;
+        sellerManualPaidBtn.textContent = "Updating…";
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "verify_payment",
+                    payment_status: "Payment_Received",
+                    advance_order: true
+                })
+            });
+            alert("Payment marked as received!");
+            dialog.close();
+            await loadTransactions();
+        } catch (err) {
+            alert("Failed to update status: " + err.message);
+            sellerManualPaidBtn.disabled = false;
+            sellerManualPaidBtn.textContent = "✓ Mark as Paid & Received";
+        }
+    });
+
+    // Seller revert to unpaid
+    const sellerRevertBtn = dialog.querySelector("#btn-seller-revert");
+    sellerRevertBtn?.addEventListener("click", async () => {
+        if (!confirm("Revert payment status back to Unpaid?")) return;
+        sellerRevertBtn.disabled = true;
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "verify_payment",
+                    payment_status: "Unpaid"
+                })
+            });
+            alert("Payment status reverted to Unpaid.");
+            dialog.close();
+            await loadTransactions();
+        } catch (err) {
+            alert("Failed to update status: " + err.message);
+            sellerRevertBtn.disabled = false;
+        }
+    });
+
+    // Seller payment instructions form
+    const instructionsForm = dialog.querySelector("#seller-instructions-form");
+    instructionsForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const instructions = dialog.querySelector("#seller-instructions-text")?.value.trim();
+        const submitBtn = instructionsForm.querySelector("button[type='submit']");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Saving…";
+        }
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "set_payment_details",
+                    payment_notes: instructions
+                })
+            });
+            alert("Payment instructions saved! Buyers will see this when settling payment.");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Saved ✓";
+            }
+        } catch (err) {
+            alert("Failed to save instructions: " + err.message);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Save Payment Instructions";
+            }
+        }
+    });
+
+    if (dialog.showModal) {
+        dialog.showModal();
+    } else {
+        dialog.setAttribute("open", "");
+    }
 }
 
 async function cancelTransaction(transactionId, button) {

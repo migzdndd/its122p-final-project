@@ -49,7 +49,8 @@
                         <th>Book</th>
                         <th>Type</th>
                         <th>Amount</th>
-                        <th>Status</th>
+                        <th>Order Status</th>
+                        <th>Payment Status</th>
                         <th>Your part</th>
                         <th>Action</th>
                     </tr>
@@ -60,13 +61,17 @@
 
                     <tr>
 
-                        <td colspan="7"><span class="inline-spinner" aria-hidden="true"></span> Loading your transactions…</td>
+                        <td colspan="8"><span class="inline-spinner" aria-hidden="true"></span> Loading your transactions…</td>
 
                     </tr>
 
                 </tbody>
 
             </table>
+
+            <dialog id="settlement-dialog" class="settlement-dialog" aria-labelledby="settlement-title">
+                <!-- Populated dynamically by script.js -->
+            </dialog>
 
         </section>
 </main>
