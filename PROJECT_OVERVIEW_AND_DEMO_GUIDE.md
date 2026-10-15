@@ -31,6 +31,18 @@ Buying and trading used books through informal chat groups or social media chann
 - **SEO & Routing Gateway:** Permanent 301 redirects, clean URL rewriting, and a branded, accessible custom 404 page.
 - **Dual-Mode Cloud & Local Architecture:** Native execution on standard local PHP/MySQL stacks, with production-ready compatibility for Vercel serverless hosting and TiDB Cloud (distributed MySQL over TLS/SSL) with schema-probe optimizations.
 
+### 1.3 Application Programming Interfaces (APIs) Overview
+Librowse is engineered around a hybrid API architecture combining an internal, standardized RESTful API backend with external cloud services and modern browser Web APIs:
+1. **External Cloud & Third-Party APIs:**
+   - **Resend REST API (`https://api.resend.com/emails`):** Cloud transactional email delivery API utilized over HTTPS (Port 443) via native PHP cURL for sending real-time account verification and password reset emails, bypassing outbound SMTP port restrictions on serverless environments.
+   - **Google Fonts API (`fonts.googleapis.com` / `fonts.gstatic.com`):** High-performance web typography delivery servicing Fraunces, Nunito Sans, and Courier Prime font families with optimized CDN preconnection and `display=swap`.
+2. **Client-Side Web APIs:**
+   - **HTML5 Canvas & FileReader Web APIs:** Client-side graphics processing engine (`book-covers.js`) enabling client-side photo compression (`librowseCompressImage`) to JPEG data URLs before upload, avoiding external storage costs and heavy server-side image libraries.
+   - **Fetch & AbortController Web APIs:** Asynchronous, promise-based networking layer (`apiRequest()` in `script.js`) featuring an adaptive 25-second timeout, cache-busting directives, and cold-start resilience.
+   - **Web Storage API (`sessionStorage`):** Secure browser-session-bound token persistence for Bearer authentication.
+3. **Internal Librowse REST API Suite:**
+   - Modular, JSON-native API endpoints structured under `/api/*` (serving authentication, catalog search, user inventory, G2G transactions, refund adjudication, moderation reports, and audit trails), uniformly formatted using a standard `Response.php` envelope.
+
 ---
 
 ## 2. System Architecture
@@ -39,37 +51,39 @@ Buying and trading used books through informal chat groups or social media chann
                +----------------------------------------------------+
                |                 Browser (Client)                   |
                |  HTML5 / Modular CSS3 (css/) / Vanilla JS (ES6+)   |
-               +-------------------------+--------------------------+
-                                         |
-                                         | HTTP Requests (JSON + Bearer Token)
-                                         v
-               +----------------------------------------------------+
-               |         Routing & Dispatch Gateway                 |
-               |   - Clean URLs & 301 Permanent SEO Redirects       |
-               |   - Custom 404 Not Found Page (404.html)           |
-               |   - Local: Apache / .htaccess / PHP CLI (8000)     |
-               |   - Cloud: Vercel Serverless (api/index.php)       |
-               +-------------------------+--------------------------+
-                                         |
-                                         v
+               |  - Canvas/FileReader Image Compression Web API     |
+               |  - Fetch API Engine (sessionStorage Bearer Token)  |
+               +----------+--------------------+--------------------+
+                          |                    |
+        Google Fonts API  |                    | HTTP Requests (JSON + Bearer Token)
+     (fonts.googleapis)   |                    v
+                          |   +------------------------------------+
+                          |   |     Routing & Dispatch Gateway     |
+                          |   |  - Clean URLs & 301 SEO Redirects  |
+                          |   |  - Custom 404 Handler (404.html)   |
+                          |   |  - Local: Apache / .htaccess       |
+                          |   |  - Cloud: Vercel api/index.php     |
+                          |   +----------------+-------------------+
+                          |                    |
+                          +                    v
                +----------------------------------------------------+
                |                PHP 8+ REST API Core                |
                |  - dispatch.php: Request routing & validation      |
                |  - Response.php: Standard JSON envelope            |
                |  - Crud.php: Parameterized PDO database engine     |
-               |  - mailer.php: Resend REST API (cURL HTTP client)  |
+               |  - mailer.php: Resend REST API Client (cURL/443)   |
                |  - security.php: DB sessions & token verification  |
-               +-------------+----------------------+---------------+
-                             |                      |
-            SQL over TLS/SSL |                      | Optional Local Fallback
-                             v                      v
+               +-------------+------------------+-------------------+
+                             |                  |
+            SQL over TLS/SSL |                  | Resend REST API (HTTPS/443)
+                             v                  v
 +------------------------------------+   +------------------------------------+
-|       MySQL 8+ / TiDB Cloud        |   |         XML Session Store          |
-|  - LIBROWSE_SESSIONS token store   |   |  - Token SHA-256 hashes            |
-|  - ACTIVITY_LOGS audit trail       |   |  - Local dev offline backup        |
-|  - Schema probe (SELECT 1 bypass)  |   |  - data/security.xml               |
-|  - ISRG Root X1 TLS encryption     |   +------------------------------------+
-|  - InnoDB transactional integrity  |
+|       MySQL 8+ / TiDB Cloud        |   |       Resend Cloud Services        |
+|  - LIBROWSE_SESSIONS token store   |   |  - api.resend.com/emails           |
+|  - ACTIVITY_LOGS audit trail       |   |  - Account Verification Emails     |
+|  - Schema probe (SELECT 1 bypass)  |   |  - Password Reset Dispatch         |
+|  - ISRG Root X1 TLS encryption     |   |  - Local temp logger fallback      |
+|  - InnoDB transactional integrity  |   +------------------------------------+
 +------------------------------------+
 ```
 
@@ -112,6 +126,61 @@ Buying and trading used books through informal chat groups or social media chann
   - `EMAIL_VERIFICATIONS`: Stores 64-character verification tokens and expiration windows for pending accounts.
   - `PASSWORD_RESETS`: Manages secure, one-hour expiration password reset tokens with single-use invalidation.
   - `PASSWORD_HISTORY`: Tracks previously used password hashes to enforce credential freshness.
+
+### 2.2 Comprehensive API Architecture & Specifications
+
+#### 2.2.1 External Third-Party APIs & Browser Web APIs
+
+| API / Service | Endpoint / Interface | Purpose & Integration Method | Key Advantage |
+|---|---|---|---|
+| **Resend REST API** | `https://api.resend.com/emails` | Sends transactional HTML emails for new account email verification and password reset links. Integrated via PHP native cURL over HTTPS (Port 443) in `book-marketplace-backend/lib/mailer.php`. | Eliminates port blocks on cloud/serverless platforms (Vercel blocks SMTP ports 25, 465, 587). Supports offline dev logging fallback if API key is omitted. |
+| **Google Fonts API** | `https://fonts.googleapis.com`<br>`https://fonts.gstatic.com` | Provides web fonts: **Fraunces** (editorial serif display), **Nunito Sans** (body & navigation UI), and **Courier Prime** (code, receipts, reference tags). | Preconnected CDNs with `font-display: swap` ensure zero layout shifts and instant typography loading. |
+| **HTML5 Canvas & FileReader API** | `HTMLCanvasElement`<br>`FileReader.readAsDataURL` | Implemented in `book-covers.js` (`librowseCompressImage`). Compresses user-uploaded book photos on the client side into optimized JPEG data URLs (quality 0.82, max 1000px dimensions). | Reduces payload size before transmission and eliminates reliance on external file storage (AWS S3) or server-side GD/Imagick dependencies. |
+| **Fetch & AbortController API** | `window.fetch()`<br>`AbortController` | Implemented in `script.js` (`apiRequest()`). Executes asynchronous HTTP requests with unified Bearer token headers, anti-cache directives (`no-store`), and a 25-second safety timeout. | Prevents silent request freezes during serverless cold starts; differentiates localhost connection failures from production cloud errors. |
+| **Web Storage API** | `window.sessionStorage` | Persists user session credentials (`token`, `user`) strictly for the duration of the browser tab session. | Tokens are automatically purged upon tab closing, minimizing session hijacking vulnerability compared to permanent `localStorage`. |
+
+#### 2.2.2 Internal REST API Architecture
+
+All backend communication adheres to RESTful conventions. Responses are wrapped in a standard JSON envelope through `book-marketplace-backend/lib/Response.php`:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation completed successfully.",
+  "timestamp": "2026-10-15T10:00:00Z"
+}
+```
+*(On failure, HTTP status is set to `4xx` or `5xx`, `"success"` is `false`, and an `"error"` message with optional debug details is provided).*
+
+#### 2.2.3 Internal REST Endpoint Directory
+
+| Endpoint | HTTP Method(s) | Access Level | Description & Query / Body Parameters |
+|---|:---:|:---:|---|
+| `/api/auth.php?action=login` | `POST` | Public | Authenticates credentials (`identifier`, `password`). Enforces brute-force lockout on 4th consecutive invalid attempt. Issues 64-char session token. |
+| `/api/auth.php?action=register` | `POST` | Public | Creates pending user account, hashes password via `PASSWORD_BCRYPT`, generates email verification token, and dispatches via Resend API. |
+| `/api/auth.php?action=verify-email` | `POST` | Public | Validates email token (`token`), activates account (`USER.status = 'Active'`), and clears pending token. |
+| `/api/auth.php?action=resend-verification` | `POST` | Public | Re-generates and sends an activation email for unverified accounts. |
+| `/api/auth.php?action=forgot-password` | `POST` | Public | Generates single-use 1-hour password reset token and dispatches reset link via Resend API. |
+| `/api/auth.php?action=verify-reset-token` | `GET` / `POST` | Public | Checks validity and expiration of password reset token before displaying reset form. |
+| `/api/auth.php?action=reset-password` | `POST` | Public | Validates reset token, checks 6-month password history to prevent credential reuse, updates password hash, unlocks account, and invalidates active sessions. |
+| `/api/auth.php?action=validate` | `GET` | Authenticated | Verifies Bearer session token against `LIBROWSE_SESSIONS` and returns public user profile. |
+| `/api/auth.php?action=logout` | `POST` | Authenticated | Revokes current session token (`revoked_at = NOW()`) and records activity audit log. |
+| `/api/unlock_request.php` | `POST` / `GET` | Public / Admin | Submits account unlock appeal for locked users (`POST`); allows Administrators to inspect pending lockout appeals (`GET`). |
+| `/api/books_catalog.php` | `GET`, `POST`, `PUT`, `DELETE` | Public / Admin | Master book database search by keyword, title, author, or ISBN (`GET`); Admin CRUD for catalog master entries. |
+| `/api/book_categories.php` | `GET`, `POST`, `DELETE` | Public / Admin | Lists all available categories and book-category mapping relationships (`GET`); Admin taxonomy management (`POST`, `DELETE`). |
+| `/api/user_books.php` | `GET`, `POST`, `PUT`, `DELETE` | Public / Customer | Browses available marketplace listings with multi-filter parameters (`GET`); allows Customers to list books (`POST`), edit price/condition (`PUT`), or soft-delete listings (`DELETE`). |
+| `/api/transactions.php` | `GET`, `POST`, `PUT`, `DELETE` | Authenticated | Manages purchase and trade requests. Single-invocation atomic inventory status locking (`In_transaction`). Role-restricted order status updates (`Pending` -> `Accepted` -> `Completed` / `Cancelled`). |
+| `/api/transactions.php?id={id}&action=submit_payment` | `POST` | Customer (Buyer) | G2G settlement: Buyer submits payment method (`GCash`, `Maya`, `Bank Transfer`, `Cash`), reference code, and receipt note. Updates `payment_status = 'Payment_Sent'`. |
+| `/api/transactions.php?id={id}&action=verify_payment` | `POST` | Customer (Seller) | G2G settlement: Listing seller confirms receipt (`Payment_Received`) or flags issues, records verification timestamp, and optionally advances order to `Accepted`. |
+| `/api/transactions.php?id={id}&action=set_payment_details` | `POST` | Customer (Seller) | Configures seller payment instructions (e.g., GCash number, bank details) displayed to buyers upon order placement. |
+| `/api/refund_request.php` | `GET`, `POST`, `PUT` | Authenticated | Customers submit refund claims on transactions (`POST`); Staff and Admins review, approve, or reject refund tickets with audit notes (`PUT`). |
+| `/api/reports.php` | `GET`, `POST`, `PUT` | Authenticated | Customer dispute submissions & seller verification applications (`POST`); Staff/Admin report mediation, status updates, and resolutions (`PUT`). |
+| `/api/user.php` | `GET`, `PUT`, `DELETE` | Authenticated / Admin | Returns authenticated profile (`GET`); Admin user roster governance, role adjustments, status changes, and manual account unlocking (`PUT`). |
+| `/api/system_records.php` | `GET` | Admin | Retrieves system audit records, critical configuration changes, and administrative actions with human-readable event formatters. |
+| `/api/activity_logs.php` | `GET`, `POST` | Authenticated / Admin | Records customer and transaction audit trails (`POST`); Admin portal query engine for searchable activity logs (`GET`). |
+| `/api/feedback.php` | `POST` | Public / Customer | Submits general user suggestions and platform feedback. |
+| `/api/robots.php` & `/api/sitemap.php` | `GET` | Public / Crawlers | Dynamic SEO indexing endpoints serving search engine crawling directives and XML sitemaps. |
 
 ---
 
@@ -284,3 +353,18 @@ Buying and trading used books through informal chat groups or social media chann
 
 **Q: How are 301 redirects and custom 404 pages handled?**  
 > **A:** Routing is configured at both the cloud gateway level (`vercel.json`) and the web server level (`.htaccess`). Common aliases and legacy URLs (such as `/books`, `/catalog`, `/signin`, `/signup`, `/orders`) are permanently redirected (HTTP 301) to canonical destinations (`/browse.html`, `/login.html`, `/register.html`, `/transactions.html`). Any undefined route displays the custom-styled `404.html` error page while returning HTTP 404.
+
+**Q: What external and browser APIs does Librowse use, and why were they selected?**  
+> **A:** Librowse leverages a lean, purpose-driven set of APIs:
+> 1. **Resend REST API (`api.resend.com`):** Handles transactional emails (email verification and password resets) over standard HTTPS (Port 443) with JSON payloads. This eliminates SMTP port blocking (ports 25/465/587) prevalent on serverless platforms like Vercel.
+> 2. **Google Fonts API:** Provides reliable, CDN-cached typography (Fraunces serif display, Nunito Sans, and Courier Prime) with preconnect resource hints and zero layout shifts.
+> 3. **HTML5 Canvas & FileReader Web APIs:** Used in `book-covers.js` to perform client-side image compression (`canvas.toDataURL('image/jpeg', 0.82)`). This scales photos down to standard thumbnail bounds before upload, eliminating storage bloat, avoiding third-party image hosting fees, and removing the need for server-side GD/Imagick binaries.
+> 4. **Fetch & Web Storage APIs:** Standardizes client-to-server communication using promise-based `fetch()` with custom timeout management, cache-invalidation headers (`no-store`), and scoped `sessionStorage` token isolation.
+
+**Q: How is the internal REST API standardized and secured against unauthorized access?**  
+> **A:** All endpoints in `book-marketplace-backend/api/` enforce uniform standards:
+> - **Unified JSON Envelope:** All responses pass through `Response::json()` and `Response::error()`, standardizing status codes, data payloads, human-readable error messages, and ISO timestamps.
+> - **Bearer Token Authentication:** Sensitive endpoints require an `Authorization: Bearer <token>` header. The token is checked against `LIBROWSE_SESSIONS` via SHA-256 hash comparison, verifying expiration and revocation.
+> - **Role-Based Access Control (RBAC):** Middleware helpers (`require_authenticated_user()`, `is_staff_or_admin()`, `require_admin()`) inspect role tiers (`Customer`, `Staff`, `Admin`) to block privilege escalation.
+> - **Parameter Sanitization & Whitelisting:** The custom `Crud.php` engine ensures that all inputs are bound using parameterized PDO statements, with column and table names restricted to strict compile-time whitelists.
+

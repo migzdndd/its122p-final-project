@@ -23,9 +23,51 @@ An integrated, full-stack web platform for peer-to-peer book listing, purchasing
 - **Staff Moderation Portal (`staff.html`):** Adjudicate customer dispute filings, verify seller applications, mediate order progression, and process refund tickets with staff notes.
 - **Admin Governance Panel (`admin.html`):** Full CRUD control over user accounts (including unlocking brute-force locked users), category taxonomies, master book catalog, formatted audit trail logs, and password reset records.
 - **Structured Transaction Lifecycle:** Transparent state progression (`Pending`, `Accepted`, `Completed`, `Cancelled`, `Disputed`) with single-invocation transaction creation and atomic status transitions.
+- **G2G Marketplace Payment Settlement Section:** Integrated peer-to-peer payment settlement modeled after the G2G marketplace. Buyers submit proof via GCash, Maya, Bank Transfer, or Cash with reference codes and receipt notes. Sellers verify received payments with live 4-stage stepper indicators (`Order Placed` -> `Payment Sent` -> `Seller Verified` -> `Completed`).
 - **Modular CSS3 Architecture:** High-performance, clean CSS modules under `css/` (`layout.css`, `landing-page.css`, `bookshelf.css`, `buttons.css`, `dashboard.css`, `auth.css`, `error.css`, `style.css`) with unified equal padding tokens and zero visual regressions.
 - **Custom 404 & 301 SEO Redirection:** Comprehensive 301 permanent redirects for legacy aliases, clean URLs (`/browse`, `/login`, `/dashboard`), and an accessible, library-themed custom 404 page (`404.html`).
 - **Dual-Mode Local & Cloud Deployment:** Runs locally on PHP 8+ built-in server or XAMPP with MySQL, and deploys natively to **Vercel** serverless functions (`api/index.php`) backed by **TiDB Cloud** (distributed MySQL over TLS/SSL) with schema-probe optimizations.
+
+---
+
+## APIs & Services Architecture
+
+Librowse utilizes a robust, unified API suite combining external cloud services, browser Web APIs, and an internal RESTful API backend:
+
+### 1. External Cloud & Third-Party APIs
+- **Resend REST API (`https://api.resend.com/emails`):**
+  - Sends transactional HTML emails for new account verification and time-limited password reset links.
+  - Communicates via native PHP cURL over HTTPS (Port 443) using Bearer authentication (`RESEND_API_KEY`).
+  - Circumvents outbound SMTP port restrictions (ports 25, 465, 587) on serverless platforms (Vercel).
+  - Includes automated fallback logging to the system temporary directory for offline local development when the API key is not configured.
+- **Google Fonts API (`fonts.googleapis.com` / `fonts.gstatic.com`):**
+  - Serves Google font families: **Fraunces** (display serif), **Nunito Sans** (interface and body typography), and **Courier Prime** (transaction reference numbers and receipts).
+  - Configured with `<link rel="preconnect">` and `display=swap` for sub-second visual rendering and zero CLS (Cumulative Layout Shift).
+
+### 2. Modern Browser Web APIs
+- **HTML5 Canvas & FileReader Web APIs (`book-covers.js`):** Client-side image compression (`librowseCompressImage`) downscaling seller book photos to base64 JPEG data URLs (max 1000px, 0.82 quality) before upload, avoiding expensive S3 buckets and heavy PHP image processing libraries.
+- **Fetch & AbortController Web APIs (`script.js`):** Promise-based networking with Bearer token authentication, anti-caching directives (`cache: "no-store"`), and an adaptive 25-second timeout protecting against serverless cold starts.
+- **Web Storage API (`window.sessionStorage`):** Secure, isolated storage for session tokens that automatically purges when the browser tab is closed.
+
+### 3. Internal Librowse REST API Endpoints (`/api/*`)
+All internal endpoints return a consistent JSON response envelope (`Response.php`) with appropriate HTTP status codes:
+- **`POST /api/auth.php?action=login`**: Credential validation with brute-force rate-limiting and 64-char token generation.
+- **`POST /api/auth.php?action=register`**: User account registration and verification email dispatch.
+- **`POST /api/auth.php?action=verify-email`**: Token-based email activation.
+- **`POST /api/auth.php?action=forgot-password`**: Password recovery email dispatch via Resend API.
+- **`POST /api/auth.php?action=reset-password`**: 6-month password history enforcement, hash update, and account unlock.
+- **`GET /api/auth.php?action=validate`**: Bearer session token verification.
+- **`POST /api/auth.php?action=logout`**: Session revocation and audit log recording.
+- **`POST /api/unlock_request.php`**: Account unlock appeal submission.
+- **`GET / POST / PUT / DELETE /api/books_catalog.php`**: Master book database indexing and administration.
+- **`GET / POST / DELETE /api/book_categories.php`**: Category taxonomy mapping.
+- **`GET / POST / PUT / DELETE /api/user_books.php`**: Peer-to-peer book listing management.
+- **`GET / POST / PUT /api/transactions.php`**: Transaction lifecycle and G2G payment settlement (`submit_payment`, `verify_payment`, `set_payment_details`).
+- **`GET / POST / PUT /api/refund_request.php`**: Refund claim filing and staff adjudication.
+- **`GET / POST / PUT /api/reports.php`**: Customer disputes and seller verification management.
+- **`GET / PUT /api/user.php`**: User profile management and administrative role/status governance.
+- **`GET /api/system_records.php` & `/api/activity_logs.php`**: Searchable audit trail and event logging.
+- **`GET /api/robots.php` & `/api/sitemap.php`**: Dynamic search engine indexing and sitemaps.
 
 ---
 
