@@ -282,10 +282,10 @@ try {
             Response::json($updated);
         }
 
-        // 2. SELLER / STAFF VERIFIES OR UPDATES PAYMENT STATUS
+        // 2. SELLER (THE ONE WHO LISTED THE BOOK) VERIFIES OR UPDATES PAYMENT STATUS
         if ($action === 'verify_payment' || $action === 'update_payment_status') {
-            if (!$isSeller && !$isAdminOrStaff) {
-                transaction_error($pdo, $authUser, $tx, 'Only the seller or staff can verify payment status.', 403, 'Payment Verification Failed');
+            if (!$isSeller) {
+                transaction_error($pdo, $authUser, $tx, 'Only the seller who listed this book can update and verify the payment status.', 403, 'Payment Verification Failed');
             }
 
             $targetPaymentStatus = (string) ($body['payment_status'] ?? '');
@@ -307,14 +307,14 @@ try {
                 $updateData['payment_notes'] = mb_substr($sellerNote, 0, 1000);
             }
 
-            // Optionally auto-advance order to 'Accepted' if verified and currently 'Pending'
+            // When seller confirms payment received, auto-advance order to 'Accepted' if currently 'Pending'
             if ($targetPaymentStatus === 'Payment_Received' && $tx['status'] === 'Pending' && $advanceOrder) {
                 $updateData['status'] = 'Accepted';
             }
 
             $updated = $crud->update($id, $updateData);
 
-            log_transaction_activity($pdo, $authUser, $updated ?? $tx, 'Payment Status Updated', 'Success', "Payment status set to {$targetPaymentStatus}", [
+            log_transaction_activity($pdo, $authUser, $updated ?? $tx, 'Payment Status Updated', 'Success', "Seller set payment status to {$targetPaymentStatus}", [
                 'target_payment_status' => $targetPaymentStatus,
                 'payment_verified_at'   => $updateData['payment_verified_at'] ?? null,
                 'seller_notes'          => $sellerNote,
@@ -325,8 +325,8 @@ try {
 
         // 3. SELLER SETS PAYMENT INSTRUCTIONS
         if ($action === 'set_payment_details') {
-            if (!$isSeller && !$isAdminOrStaff) {
-                transaction_error($pdo, $authUser, $tx, 'Only the seller can configure payment instructions.', 403, 'Update Failed');
+            if (!$isSeller) {
+                transaction_error($pdo, $authUser, $tx, 'Only the seller who listed this book can configure payment instructions.', 403, 'Update Failed');
             }
             $instructions = trim((string) ($body['payment_notes'] ?? ''));
             $preferredMethod = trim((string) ($body['payment_method'] ?? ''));
@@ -339,13 +339,23 @@ try {
             Response::json($updated);
         }
 
-        // 4. ORDER STATUS TRANSITION (Cancellation / Staff progression)
+        // 4. ORDER STATUS TRANSITION (Buyer cancellation or Seller progression)
         $to = (string) ($body['status'] ?? '');
         $from = (string) $tx['status'];
 
         if ($isCustomer) {
-            if ((int) $tx['buyer_id'] !== $me || $from !== 'Pending' || $to !== 'Cancelled') {
-                transaction_error($pdo, $authUser, $tx, 'You can only cancel your own pending requests.', 403, 'Status Change Failed');
+            $isBuyer = ($me === (int) $tx['buyer_id']);
+            $isSeller = ($me === $sellerId);
+
+            $buyerAllowed = ($isBuyer && $from === 'Pending' && $to === 'Cancelled');
+            // The seller who listed the book can accept a pending order, complete an accepted order, or cancel an order
+            $sellerAllowed = ($isSeller && (
+                ($from === 'Pending' && in_array($to, ['Accepted', 'Cancelled'], true)) ||
+                ($from === 'Accepted' && in_array($to, ['Completed', 'Cancelled'], true))
+            ));
+
+            if (!$buyerAllowed && !$sellerAllowed) {
+                transaction_error($pdo, $authUser, $tx, 'Customers can only update orders where they are the buyer or the seller who listed the book.', 403, 'Status Change Failed');
             }
         } elseif (array_diff(array_keys($body), ['status', 'managed_by_staff_id', 'action'])) {
             transaction_error($pdo, $authUser, $tx, 'Only valid transaction or status fields can be updated.', 422, 'Status Change Failed');

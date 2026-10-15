@@ -236,9 +236,8 @@ Buying and trading used books through informal chat groups or social media chann
 2. **Review Customer Reports:**
    - Open the **Customer Forms / Reports** tab.
    - Locate the dispute filed during Step 1, inspect submitted details, and update status to `Under_Review` or `Resolved`.
-3. **Transaction Mediation:**
-   - Open the **Transactions** tab. Filter by status (`Pending`) to find the buyer's order from Step 1.
-   - Advance the order status to `Accepted` or `Completed`.
+3. **Transaction Mediation & Arbitration:**
+   - Open the **Transactions** tab. Filter by status (`Disputed`) to demonstrate how staff arbitrates contested transactions while regular order payments and fulfillment are verified directly by the listing sellers.
 4. **Process Refund Requests:**
    - Open the **Refunds** tab, inspect the refund claim details, and approve or reject the request with staff notes.
 5. **Staff Escalation:**

@@ -14,7 +14,7 @@
 
     const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const statIds = ["stat-total", "stat-active", "stat-sold", "stat-pending-listing",
-        "stat-tx-total", "stat-tx-pending", "stat-tx-completed", "stat-tx-cancelled",
+        "stat-tx-total", "stat-tx-pending", "stat-tx-payment-pending", "stat-tx-completed", "stat-tx-cancelled",
         "stat-refund-pending", "stat-refund-approved", "stat-refund-other",
         "stat-report-pending", "stat-report-review", "stat-report-resolved"];
 
@@ -95,14 +95,27 @@
         if (tbody) tbody.innerHTML = '<tr><td colspan="6">Couldn\'t load your listings. Refresh the page to try again.</td></tr>';
     }
 
-    /* Transactions you requested */
+    /* Transactions you requested or are selling */
     if (txR.status === "fulfilled") {
-        const mine = txR.value.filter(t => String(t.buyer_id) === uid);
+        const allTx = Array.isArray(txR.value) ? txR.value : [];
+        const mine = allTx.filter(t => String(t.buyer_id) === uid || String(t.seller_id) === uid);
         setStat("stat-tx-total", mine.length);
         setStat("stat-tx-pending", mine.filter(t => ["Pending", "Accepted", "Disputed"].includes(t.status)).length);
         setStat("stat-tx-completed", mine.filter(t => t.status === "Completed").length);
         setStat("stat-tx-cancelled", mine.filter(t => t.status === "Cancelled").length);
-    } else["stat-tx-total", "stat-tx-pending", "stat-tx-completed", "stat-tx-cancelled"].forEach(id => setStat(id, "—"));
+
+        const paymentActionNeeded = mine.filter(t => {
+            if (t.transaction_type === "Trade") return false;
+            if (["Cancelled", "Completed"].includes(t.status)) return false;
+            const isBuyer = String(t.buyer_id) === uid;
+            const isSeller = String(t.seller_id) === uid;
+            // Buyer needs to settle payment OR seller who listed book needs to verify proof
+            if (isBuyer && (!t.payment_status || t.payment_status === "Unpaid")) return true;
+            if (isSeller && t.payment_status === "Payment_Sent") return true;
+            return false;
+        }).length;
+        setStat("stat-tx-payment-pending", paymentActionNeeded);
+    } else ["stat-tx-total", "stat-tx-pending", "stat-tx-payment-pending", "stat-tx-completed", "stat-tx-cancelled"].forEach(id => setStat(id, "—"));
 
     /* Refunds */
     if (refundsR.status === "fulfilled") {

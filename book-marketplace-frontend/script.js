@@ -1534,7 +1534,7 @@ function isMyListing(inventoryId) {
 }
 
 const TX_STATUS_TEXT = {
-    Pending:   "Pending — waiting for staff to confirm",
+    Pending:   "Pending — waiting for seller to confirm",
     Accepted:  "Accepted — being arranged",
     Completed: "Completed",
     Cancelled: "Cancelled",
@@ -1609,7 +1609,21 @@ function renderTransactions(transactionData) {
         } else if (iAmBuyer) {
             roleLabel = "Buyer";
         } else if (iAmSeller) {
-            roleLabel = "Seller";
+            roleLabel = "Seller (Listed Book)";
+        }
+
+        // Context-aware order status text
+        let statusText = TX_STATUS_TEXT[t.status] || t.status;
+        if (t.status === "Pending") {
+            if (isTrade) {
+                statusText = iAmSeller ? "Pending — trade proposal for your book" : "Pending — waiting for seller to accept";
+            } else if (t.payment_status === "Payment_Sent") {
+                statusText = iAmSeller ? "Payment sent — verify now" : "Payment sent — waiting for seller to confirm";
+            } else if (t.payment_status === "Payment_Received") {
+                statusText = "Payment confirmed by seller";
+            } else {
+                statusText = iAmBuyer ? "Pending — payment needed" : "Pending — waiting for buyer payment";
+            }
         }
 
         const row = document.createElement("tr");
@@ -1618,7 +1632,7 @@ function renderTransactions(transactionData) {
             <td>${book}</td>
             <td>${escapeHTML(t.transaction_type)}</td>
             <td>${isTrade ? "—" : escapeHTML(formatPrice(t.amount_paid))}</td>
-            <td><span class="tx-status tx-${escapeHTML(String(t.status).toLowerCase())}">${escapeHTML(TX_STATUS_TEXT[t.status] || t.status)}</span></td>
+            <td><span class="tx-status tx-${escapeHTML(String(t.status).toLowerCase())}">${escapeHTML(statusText)}</span></td>
             <td>${paymentBadge}</td>
             <td>${roleLabel}</td>
             <td class="transaction-action"></td>`;
@@ -1636,6 +1650,8 @@ function renderTransactions(transactionData) {
             } else if (iAmSeller && t.payment_status === "Payment_Sent") {
                 settleBtn.className += " btn-primary-solid";
                 settleBtn.textContent = "🔍 Verify Payment";
+            } else if (iAmSeller && (!t.payment_status || t.payment_status === "Unpaid")) {
+                settleBtn.textContent = "Update Payment Info";
             } else if (t.payment_status === "Payment_Received") {
                 settleBtn.textContent = "✓ Payment Info";
             } else {
@@ -1646,12 +1662,35 @@ function renderTransactions(transactionData) {
             action.appendChild(settleBtn);
         }
 
+        // Seller quick complete when order is accepted/paid
+        if (iAmSeller && t.status === "Accepted") {
+            const compBtn = document.createElement("button");
+            compBtn.type = "button";
+            compBtn.className = "btn-small btn-success-solid";
+            compBtn.textContent = "Complete";
+            compBtn.style.marginLeft = "4px";
+            compBtn.title = "Mark order as delivered/completed";
+            compBtn.addEventListener("click", () => completeOrderAsSeller(t.transaction_id, compBtn));
+            action.appendChild(compBtn);
+        }
+
         if (iAmBuyer && t.status === "Pending") {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "btn-small";
             btn.textContent = "Cancel";
             btn.style.marginLeft = "4px";
+            btn.addEventListener("click", () => cancelTransaction(t.transaction_id, btn));
+            action.appendChild(btn);
+        }
+
+        if (iAmSeller && t.status === "Pending") {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn-small btn-danger-outline";
+            btn.textContent = "Decline";
+            btn.style.marginLeft = "4px";
+            btn.title = "Decline request and return book to shelf";
             btn.addEventListener("click", () => cancelTransaction(t.transaction_id, btn));
             action.appendChild(btn);
         }
@@ -1887,11 +1926,17 @@ function openSettlementModal(t) {
             } else if (paymentStatus === "Payment_Received") {
                 contentHTML += `
                     <div class="payment-alert payment-alert-success">
-                        <h4>Payment Received & Confirmed</h4>
-                        <p>You verified this payment on <strong>${escapeHTML(t.payment_verified_at || "recently")}</strong>.</p>
+                        <h4>✓ Payment Received & Confirmed</h4>
+                        <p>You verified this payment on <strong>${escapeHTML(t.payment_verified_at || "recently")}</strong>. Order status: <strong>${escapeHTML(t.status)}</strong>.</p>
                     </div>
                     <div class="payment-details-card">
                         <p><strong>Method:</strong> ${escapeHTML(t.payment_method || "—")} &nbsp;&bull;&nbsp; <strong>Reference:</strong> <span class="ref-badge">${escapeHTML(t.payment_reference || "—")}</span></p>
+                        ${t.status === "Accepted" ? `
+                            <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--rule);">
+                                <p style="font-size:13px;margin:0 0 8px;font-weight:600;color:#166534;">Once you have handed over or delivered the book to the buyer, complete the transaction:</p>
+                                <button type="button" class="btn-success-solid" id="btn-seller-complete-modal" style="width:100%;padding:10px;">📦 Mark Order as Completed / Delivered</button>
+                            </div>
+                        ` : ""}
                         <div class="seller-actions-group" style="margin-top:10px;">
                             <button type="button" class="btn-danger-outline" id="btn-seller-revert" style="font-size:12px;padding:6px 12px;">Change back to Unpaid</button>
                         </div>
@@ -2120,10 +2165,50 @@ function openSettlementModal(t) {
         }
     });
 
+    // Seller complete order from modal
+    const modalCompleteBtn = dialog.querySelector("#btn-seller-complete-modal");
+    modalCompleteBtn?.addEventListener("click", async () => {
+        if (!confirm(`Mark Order #${t.transaction_id} as completed? This confirms delivery and marks your listing as Sold.`)) return;
+        modalCompleteBtn.disabled = true;
+        modalCompleteBtn.textContent = "Completing…";
+        try {
+            await apiRequest(`transactions.php?id=${t.transaction_id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "Completed" })
+            });
+            alert("Order marked as completed! Thank you for selling on Librowse.");
+            dialog.close();
+            await loadBooks();
+            await loadTransactions();
+        } catch (err) {
+            alert("Failed to complete order: " + err.message);
+            modalCompleteBtn.disabled = false;
+            modalCompleteBtn.textContent = "📦 Mark Order as Completed / Delivered";
+        }
+    });
+
     if (dialog.showModal) {
         dialog.showModal();
     } else {
         dialog.setAttribute("open", "");
+    }
+}
+
+async function completeOrderAsSeller(transactionId, button) {
+    if (!confirm(`Mark Order #${transactionId} as completed? This confirms delivery and marks your listing as Sold.`)) return;
+    if (button) { button.disabled = true; button.textContent = "Completing…"; }
+    try {
+        await apiRequest(`transactions.php?id=${transactionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "Completed" })
+        });
+        await loadBooks();
+        await loadTransactions();
+    } catch (error) {
+        alert("Unable to complete order.\n\n" + error.message);
+        if (button) { button.disabled = false; button.textContent = "Complete"; }
     }
 }
 
