@@ -25,7 +25,7 @@
 }
 
 .dashboard-card {
-    padding: 16px 18px;
+    padding: 18px;
     background: var(--surface);
     border: 1px solid var(--rule);
     border-left: 4px solid var(--ink);
@@ -59,6 +59,36 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
+}
+
+.dashboard-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-gray, var(--muted));
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-stat {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--primary, var(--spine));
+    margin: 0 0 4px;
+    line-height: 1;
+}
+
+.dashboard-stat-label {
+    font-size: 12px;
+    color: var(--text-gray, var(--muted));
+    margin: 0 0 6px;
+}
+
+.dashboard-stat-sub {
+    font-size: 12px;
+    color: var(--text-gray, var(--muted));
+    margin: 0;
+    min-height: 16px;
 }
 
 .dashboard-card-value {

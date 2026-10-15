@@ -1,0 +1,29 @@
+# =========================================================================
+# LIBROWSE BOOK EXCHANGE — Root Apache Configuration
+# Custom 404 Error Document & 301 Permanent Redirects
+# =========================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Custom 404 Error Document
+    ErrorDocument 404 /book-marketplace-frontend/404.html
+
+    # ---------------------------------------------------------------------
+    # 301 Permanent Redirects: Root aliases
+    # ---------------------------------------------------------------------
+    RewriteRule ^home(\.html)?$ /book-marketplace-frontend/index.html [R=301,L,NC]
+    RewriteRule ^(books|catalog|marketplace|shop)$ /book-marketplace-frontend/browse.html [R=301,L,NC]
+    RewriteRule ^(signin|sign-in)$ /book-marketplace-frontend/login.html [R=301,L,NC]
+    RewriteRule ^(signup|sign-up)$ /book-marketplace-frontend/register.html [R=301,L,NC]
+    RewriteRule ^(sell|list)$ /book-marketplace-frontend/list-book.html [R=301,L,NC]
+    RewriteRule ^(orders|history)$ /book-marketplace-frontend/transactions.html [R=301,L,NC]
+    RewriteRule ^(help|contact)$ /book-marketplace-frontend/support.html [R=301,L,NC]
+    RewriteRule ^refunds$ /book-marketplace-frontend/refund.html [R=301,L,NC]
+    RewriteRule ^reports$ /book-marketplace-frontend/report.html [R=301,L,NC]
+
+    # Clean URLs to frontend
+    RewriteCond %{DOCUMENT_ROOT}/book-marketplace-frontend/$1.html -f
+    RewriteRule ^([a-zA-Z0-9_-]+)$ /book-marketplace-frontend/$1.html [R=301,L]
+</IfModule>

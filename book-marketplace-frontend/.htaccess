@@ -1,0 +1,32 @@
+# =========================================================================
+# LIBROWSE BOOK EXCHANGE — Apache Server Configuration
+# Custom 404 Error Document & 301 Permanent Redirects
+# =========================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Custom 404 Error Document
+    ErrorDocument 404 /404.html
+
+    # ---------------------------------------------------------------------
+    # 301 Permanent Redirects: Common Aliases & Legacy URLs
+    # ---------------------------------------------------------------------
+    RewriteRule ^home(\.html)?$ /index.html [R=301,L,NC]
+    RewriteRule ^(books|catalog|marketplace|shop)$ /browse.html [R=301,L,NC]
+    RewriteRule ^(signin|sign-in)$ /login.html [R=301,L,NC]
+    RewriteRule ^(signup|sign-up)$ /register.html [R=301,L,NC]
+    RewriteRule ^(sell|list)$ /list-book.html [R=301,L,NC]
+    RewriteRule ^(orders|history)$ /transactions.html [R=301,L,NC]
+    RewriteRule ^(help|contact)$ /support.html [R=301,L,NC]
+    RewriteRule ^refunds$ /refund.html [R=301,L,NC]
+    RewriteRule ^reports$ /report.html [R=301,L,NC]
+
+    # ---------------------------------------------------------------------
+    # 301 Permanent Redirects: Clean URLs (Extensionless to .html)
+    # ---------------------------------------------------------------------
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}.html -f
+    RewriteRule ^([a-zA-Z0-9_-]+)$ /$1.html [R=301,L]
+</IfModule>

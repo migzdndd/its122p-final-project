@@ -25,6 +25,7 @@
 @import url("auth.css");
 @import url("dashboard.css");
 @import url("bookshelf.css");
+@import url("error.css");
 
 /* Landing Page */
 @import url("landing-page.css");

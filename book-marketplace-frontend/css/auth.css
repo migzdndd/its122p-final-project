@@ -6,7 +6,7 @@
     width: 100%;
     max-width: 460px;
     margin: 16px auto 0;
-    padding: 32px 36px 28px;
+    padding: 32px;
     overflow: visible;
     border-top: 4px solid var(--spine);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 6px 20px -4px rgba(78, 59, 48, 0.1), 0 18px 42px -10px rgba(110, 80, 55, 0.22);
@@ -507,6 +507,162 @@ body.auth-page main {
     display: block;
     margin-bottom: 4px;
     font-size: 15px;
+}
+
+/* Unlock Request Dialog & Lockout Actions */
+.lock-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-top: 12px;
+}
+
+button.lock-request-btn {
+    margin: 0;
+    padding: 9px 18px;
+    font-size: 13px;
+    background: #dc2626;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(220, 38, 38, .25);
+}
+
+button.lock-request-btn:hover {
+    background: #b91c1c;
+}
+
+.optional-tag {
+    margin-left: 6px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--paper);
+    border-radius: 999px;
+}
+
+.unlock-dialog {
+    width: min(460px, 92vw);
+    padding: 0;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-lg);
+    box-shadow: 0 30px 60px -20px rgba(15, 23, 42, .35);
+}
+
+.unlock-dialog::backdrop {
+    background: rgba(11, 16, 32, .6);
+    backdrop-filter: blur(3px);
+}
+
+.unlock-dialog form {
+    position: relative;
+    padding: 28px;
+}
+
+.unlock-dialog h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: var(--ink);
+}
+
+.unlock-intro {
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.unlock-dialog label {
+    display: block;
+    margin: 14px 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.unlock-dialog input,
+.unlock-dialog textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 13px;
+    font: inherit;
+    font-size: 14px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-md);
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.unlock-dialog textarea {
+    min-height: 84px;
+    resize: vertical;
+}
+
+.unlock-dialog input:focus,
+.unlock-dialog textarea:focus {
+    outline: none;
+    border-color: var(--spine);
+    box-shadow: 0 0 0 3px rgba(154, 116, 88, .2);
+    background: #fff;
+}
+
+.unlock-dialog .dialog-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    box-shadow: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.unlock-dialog .dialog-close:hover {
+    background: var(--rule-strong);
+    transform: none;
+}
+
+.unlock-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.unlock-actions button {
+    margin: 0;
+}
+
+.unlock-done {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 16px 18px;
+    color: var(--ok);
+    background: var(--ok-tint);
+    border: 1px solid #bbf7d0;
+    border-radius: var(--r-md);
+}
+
+.unlock-done span {
+    color: var(--ink-2);
+    font-size: 14px;
+}
+
+.unlock-done button {
+    margin-top: 6px;
 }
 
 /* =========================================================================

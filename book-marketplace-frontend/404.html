@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-public-page="true">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=Courier+Prime:wght@400;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+    <title>404 — Shelf Not Found | Librowse Book Exchange</title>
+    <meta name="description" content="The requested book or page could not be found in the Librowse community book exchange catalog.">
+    <script src="session.js"></script>
+    <script src="consent.js"></script>
+    <script>
+        // Client-side 301 redirect fallback for direct static servers or URL path routing
+        (function() {
+            const path = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+            const redirects = {
+                '/home': 'index.html',
+                '/home.html': 'index.html',
+                '/books': 'browse.html',
+                '/catalog': 'browse.html',
+                '/marketplace': 'browse.html',
+                '/shop': 'browse.html',
+                '/signin': 'login.html',
+                '/sign-in': 'login.html',
+                '/login': 'login.html',
+                '/signup': 'register.html',
+                '/sign-up': 'register.html',
+                '/register': 'register.html',
+                '/sell': 'list-book.html',
+                '/list': 'list-book.html',
+                '/orders': 'transactions.html',
+                '/history': 'transactions.html',
+                '/help': 'support.html',
+                '/contact': 'support.html',
+                '/refunds': 'refund.html',
+                '/reports': 'report.html',
+                '/admin': 'admin.html',
+                '/staff': 'staff.html',
+                '/dashboard': 'dashboard.html'
+            };
+            const target = redirects[path];
+            if (target) {
+                window.location.replace(target + window.location.search + window.location.hash);
+            }
+        })();
+    </script>
+</head>
+<body class="landing-page">
+
+<header>
+    <h1>Librowse Book Exchange</h1>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="browse.html">Browse Books</a>
+        <a href="list-book.html">List a Book</a>
+        <a href="customer-dashboard.html">Dashboard</a>
+        <a href="refund.html">Refunds</a>
+        <a href="report.html">Reports</a>
+    </nav>
+    <div id="auth-status" class="auth-status">
+        <a href="login.html">Sign in</a>
+        <a href="register.html">Create account</a>
+    </div>
+</header>
+
+<main id="main-content">
+    <section class="error-section" aria-labelledby="error-heading">
+        <div class="error-content">
+            <div class="error-badge-row">
+                <span class="error-badge">
+                    <span class="badge-dot" aria-hidden="true"></span>
+                    Shelf Missing · Error 404
+                </span>
+                <span class="library-callno">CALL NO. 404.0 / LIB / NOT-FOUND</span>
+            </div>
+
+            <h2 id="error-heading" class="error-title">This title is <span>missing from the stacks</span>.</h2>
+
+            <p class="error-desc">
+                We cataloged our library shelves high and low, but the page or volume you’re searching for seems to have been checked out, moved to another shelf, or was never archived in our system.
+            </p>
+
+            <div class="error-search-box">
+                <form class="error-search-form" action="browse.html" method="GET" role="search">
+                    <div class="error-input-wrap">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" name="search" placeholder="Search by book title, author, or keyword…" autocomplete="off" aria-label="Search book marketplace">
+                    </div>
+                    <button type="submit" class="landing-btn landing-btn-primary">Search Catalog</button>
+                </form>
+            </div>
+
+            <div class="error-actions">
+                <a href="index.html" class="landing-btn landing-btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Return to Home
+                </a>
+                <a href="browse.html" class="landing-btn landing-btn-secondary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    Browse All Books
+                </a>
+                <a href="dashboard.html" class="landing-btn landing-btn-secondary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                    Dashboard
+                </a>
+            </div>
+
+            <div class="error-suggestions">
+                <span class="error-suggestions-title">Or browse a popular section:</span>
+                <div class="error-chips">
+                    <a href="browse.html?category=Fiction" class="error-chip">Fiction</a>
+                    <a href="browse.html?category=Non-Fiction" class="error-chip">Non-Fiction</a>
+                    <a href="browse.html?category=Academic+%26+Textbooks" class="error-chip">Textbooks</a>
+                    <a href="browse.html?category=Science+Fiction+%26+Fantasy" class="error-chip">Sci-Fi &amp; Fantasy</a>
+                    <a href="browse.html?category=Mystery+%26+Thriller" class="error-chip">Mystery &amp; Thriller</a>
+                    <a href="support.html" class="error-chip">Help &amp; Support</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-visual">
+            <div class="error-card-stack">
+                <img class="error-illustration" src="assets/books-stack.svg" alt="A stack of cozy books with steam" width="280" height="236">
+                <div class="library-checkout-card">
+                    <div class="card-stamp-header">
+                        <span>LIBROWSE CIRCULATION</span>
+                        <span class="stamp-tag-overdue">MISSING</span>
+                    </div>
+                    <div class="card-stamp-row">
+                        <span class="card-stamp-label">CALL NO:</span>
+                        <strong>404.0 LIB</strong>
+                    </div>
+                    <div class="card-stamp-row">
+                        <span class="card-stamp-label">STATUS:</span>
+                        <span>OFF SHELF / OVERDUE</span>
+                    </div>
+                    <div class="card-stamp-row">
+                        <span class="card-stamp-label">RECOMMENDED:</span>
+                        <span>RETURN TO CATALOG</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="landing-footer">
+    <div class="footer-container">
+        <div class="footer-col-brand">
+            <h3>Librowse Book Exchange</h3>
+            <p>Peer-to-peer secondhand book marketplace where real readers buy, sell, and swap genuine volumes from their shelves.</p>
+            <p class="footer-course-tag">ITS122P · Web Systems &amp; Technologies</p>
+        </div>
+        <div class="footer-col">
+            <h4>Marketplace</h4>
+            <ul>
+                <li><a href="browse.html">Browse Stacks</a></li>
+                <li><a href="list-book.html">List a Book</a></li>
+                <li><a href="browse.html?category=Academic+%26+Textbooks">Textbooks</a></li>
+                <li><a href="browse.html?category=Fiction">Fiction</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Member Area</h4>
+            <ul>
+                <li><a href="customer-dashboard.html">Dashboard</a></li>
+                <li><a href="transactions.html">Order History</a></li>
+                <li><a href="login.html">Sign In</a></li>
+                <li><a href="register.html">Create Account</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Support &amp; Trust</h4>
+            <ul>
+                <li><a href="refund.html">Refund Request</a></li>
+                <li><a href="report.html">Dispute Filing</a></li>
+                <li><a href="support.html">Mediation Center</a></li>
+                <li><a href="support.html#guidelines">Community Rules</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2026 Librowse Book Exchange. Built with clean modular architecture for ITS122P.</p>
+    </div>
+</footer>
+
+</body>
+</html>

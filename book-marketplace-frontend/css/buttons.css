@@ -93,7 +93,10 @@ button.btn-locked {
 
 button:disabled::before,
 button[disabled]::before,
-button.btn-locked::before {
+button.btn-locked::before,
+button.lock-retry-link::before,
+button.lock-request-btn::before,
+.unlock-dialog button::before {
     display: none !important;
 }
 

@@ -7,10 +7,10 @@
     width: 100%;
     max-width: 1180px;
     margin: 0 auto;
-    padding: 0 24px 64px;
+    padding: 32px 24px 64px;
     display: flex;
     flex-direction: column;
-    gap: 64px;
+    gap: 48px;
 }
 
 /* 1. HERO SECTION */
@@ -19,7 +19,7 @@
     grid-template-columns: 1.15fr 0.85fr;
     align-items: center;
     gap: 48px;
-    padding: 48px 0 24px;
+    padding: 48px;
 }
 
 .landing-hero-content {
@@ -75,7 +75,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 14px;
-    margin-top: 6px;
 }
 
 .landing-btn {
@@ -137,9 +136,8 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px 24px;
-    margin-top: 14px;
-    padding: 14px 22px;
+    gap: 16px 20px;
+    padding: 16px 20px;
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: var(--r-md);
@@ -149,6 +147,7 @@
 .hero-stat-item {
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
 .hero-stat-item .stat-number {
@@ -171,6 +170,7 @@
     width: 1px;
     height: 28px;
     background: var(--rule-strong);
+    align-self: center;
 }
 
 /* Hero Art & Floating Badges */
@@ -200,8 +200,8 @@
     position: absolute;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
+    gap: 12px;
+    padding: 10px 14px;
     max-width: calc(100% - 24px);
     background: var(--surface);
     border: 1px solid var(--rule-strong);
@@ -252,7 +252,7 @@
 
 .hero-trust-note {
     margin: 0;
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: var(--r-md);
     border: 1px solid var(--rule);
     background: rgba(255, 252, 247, 0.9);
@@ -282,7 +282,7 @@
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: var(--r-lg);
-    padding: 24px 28px;
+    padding: 28px;
     box-shadow: 0 4px 16px rgba(78, 59, 48, .05);
     display: flex;
     flex-direction: column;
@@ -415,7 +415,7 @@
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: var(--r-md);
-    padding: 32px 26px 26px;
+    padding: 28px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 2px 8px rgba(78, 59, 48, .04);
@@ -569,7 +569,7 @@
 }
 
 .card-body {
-    padding: 16px 18px 20px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -716,7 +716,7 @@
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: var(--r-md);
-    padding: 28px 24px;
+    padding: 28px;
     box-shadow: 0 2px 8px rgba(78, 59, 48, .04);
 }
 
@@ -764,7 +764,7 @@
     border: 1px solid var(--rule);
     border-top: 4px solid var(--spine);
     border-radius: var(--r-md);
-    padding: 28px 24px;
+    padding: 28px;
     box-shadow: 0 2px 8px rgba(78, 59, 48, .04);
 }
 
@@ -823,7 +823,7 @@
     background: linear-gradient(135deg, var(--ink) 0%, #3a2c24 100%);
     border: 3px solid var(--spine);
     border-radius: var(--r-lg);
-    padding: 56px 32px;
+    padding: 48px;
     text-align: center;
     color: #fffaf3;
     box-shadow: 0 12px 32px rgba(45, 31, 23, .25);
@@ -949,7 +949,7 @@
     .landing-hero {
         grid-template-columns: 1fr;
         gap: 36px;
-        padding-top: 24px;
+        padding: 32px;
         text-align: center;
     }
 
@@ -975,6 +975,10 @@
 }
 
 @media (max-width: 640px) {
+    .landing-hero {
+        padding: 24px 20px;
+    }
+
     .landing-search-bar {
         flex-direction: column;
     }
