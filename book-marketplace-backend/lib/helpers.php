@@ -63,26 +63,30 @@ function ensure_activity_logs_table(PDO $pdo): void
     $done = true;
 
     try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `ACTIVITY_LOGS` (
-            `activity_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
-            `actor_user_id` INT UNSIGNED DEFAULT NULL,
-            `visitor_key` VARCHAR(128) DEFAULT NULL,
-            `activity_type` VARCHAR(60) NOT NULL,
-            `activity_action` VARCHAR(160) NOT NULL,
-            `outcome` ENUM('Success','Failed','Neutral') NOT NULL DEFAULT 'Neutral',
-            `reason` TEXT DEFAULT NULL,
-            `page_path` VARCHAR(255) DEFAULT NULL,
-            `target_type` VARCHAR(60) DEFAULT NULL,
-            `target_id` VARCHAR(64) DEFAULT NULL,
-            `details` JSON DEFAULT NULL,
-            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`activity_id`),
-            INDEX `idx_activity_actor` (`actor_user_id`),
-            INDEX `idx_activity_type` (`activity_type`),
-            INDEX `idx_activity_created` (`created_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $pdo->query("SELECT 1 FROM `ACTIVITY_LOGS` LIMIT 0");
     } catch (PDOException $e) {
-        error_log('[librowse] ' . $e->getMessage());
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `ACTIVITY_LOGS` (
+                `activity_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                `actor_user_id` INT UNSIGNED DEFAULT NULL,
+                `visitor_key` VARCHAR(128) DEFAULT NULL,
+                `activity_type` VARCHAR(60) NOT NULL,
+                `activity_action` VARCHAR(160) NOT NULL,
+                `outcome` ENUM('Success','Failed','Neutral') NOT NULL DEFAULT 'Neutral',
+                `reason` TEXT DEFAULT NULL,
+                `page_path` VARCHAR(255) DEFAULT NULL,
+                `target_type` VARCHAR(60) DEFAULT NULL,
+                `target_id` VARCHAR(64) DEFAULT NULL,
+                `details` JSON DEFAULT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`activity_id`),
+                INDEX `idx_activity_actor` (`actor_user_id`),
+                INDEX `idx_activity_type` (`activity_type`),
+                INDEX `idx_activity_created` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (PDOException $e2) {
+            error_log('[librowse] ' . $e2->getMessage());
+        }
     }
 }
 

@@ -60,12 +60,12 @@ async function apiRequest(endpoint, options = {}) {
 
         return data;
     } catch (err) {
-        // Handle network/connection failure when PHP server is not running
         if (err.name === "TypeError" && err.message.includes("fetch")) {
-            throw new Error(
-                "Cannot connect to the backend at " + API_BASE +
-                ". Please ensure your PHP server is running (e.g., php -S 127.0.0.1:8000 -t book-marketplace-backend)."
-            );
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            const tip = isLocal
+                ? "Please ensure your PHP server is running (e.g., php -S 127.0.0.1:8000 -t book-marketplace-backend)."
+                : "Please check your network connection or verify service status.";
+            throw new Error(`Cannot connect to the backend at ${API_BASE}. ${tip}`);
         }
         throw err;
     }

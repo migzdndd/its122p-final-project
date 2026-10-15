@@ -15,17 +15,21 @@ function ensure_sessions_table(PDO $pdo): void
     if ($done) return;
     $done = true;
     try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `LIBROWSE_SESSIONS` (
-            `token_hash` VARCHAR(64) NOT NULL,
-            `user_id` INT UNSIGNED NOT NULL,
-            `role` VARCHAR(20) NOT NULL,
-            `created_at` DATETIME NOT NULL,
-            `expires_at` DATETIME NOT NULL,
-            PRIMARY KEY (`token_hash`),
-            INDEX `idx_expires` (`expires_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $pdo->query("SELECT 1 FROM `LIBROWSE_SESSIONS` LIMIT 0");
     } catch (PDOException $e) {
-        // Table may already exist or no permission — continue
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `LIBROWSE_SESSIONS` (
+                `token_hash` VARCHAR(64) NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `role` VARCHAR(20) NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                `expires_at` DATETIME NOT NULL,
+                PRIMARY KEY (`token_hash`),
+                INDEX `idx_expires` (`expires_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (PDOException $e2) {
+            // Table may already exist or no permission — continue
+        }
     }
     ensure_column($pdo, 'LIBROWSE_SESSIONS', 'revoked_at');
     ensure_column($pdo, 'USER', 'deleted_at');
@@ -38,34 +42,42 @@ function ensure_auth_tokens_tables(PDO $pdo): void
     $done = true;
 
     try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `EMAIL_VERIFICATIONS` (
-            `verification_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
-            `user_id` INT UNSIGNED NOT NULL,
-            `token_hash` VARCHAR(64) NOT NULL,
-            `expires_at` DATETIME NOT NULL,
-            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`verification_id`),
-            INDEX `idx_ev_user` (`user_id`),
-            INDEX `idx_ev_token` (`token_hash`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $pdo->query("SELECT 1 FROM `EMAIL_VERIFICATIONS` LIMIT 0");
     } catch (PDOException $e) {
-        // Table may already exist
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `EMAIL_VERIFICATIONS` (
+                `verification_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `token_hash` VARCHAR(64) NOT NULL,
+                `expires_at` DATETIME NOT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`verification_id`),
+                INDEX `idx_ev_user` (`user_id`),
+                INDEX `idx_ev_token` (`token_hash`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (PDOException $e2) {
+            // Table may already exist
+        }
     }
 
     try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `PASSWORD_RESETS` (
-            `reset_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
-            `user_id` INT UNSIGNED NOT NULL,
-            `token_hash` VARCHAR(64) NOT NULL,
-            `expires_at` DATETIME NOT NULL,
-            `used_at` DATETIME DEFAULT NULL,
-            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`reset_id`),
-            INDEX `idx_pr_user` (`user_id`),
-            INDEX `idx_pr_token` (`token_hash`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $pdo->query("SELECT 1 FROM `PASSWORD_RESETS` LIMIT 0");
     } catch (PDOException $e) {
-        // Table may already exist
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `PASSWORD_RESETS` (
+                `reset_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `token_hash` VARCHAR(64) NOT NULL,
+                `expires_at` DATETIME NOT NULL,
+                `used_at` DATETIME DEFAULT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`reset_id`),
+                INDEX `idx_pr_user` (`user_id`),
+                INDEX `idx_pr_token` (`token_hash`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (PDOException $e2) {
+            // Table may already exist
+        }
     }
 
     ensure_password_history_table($pdo);
@@ -78,16 +90,20 @@ function ensure_password_history_table(PDO $pdo): void
     $done = true;
 
     try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `PASSWORD_HISTORY` (
-            `history_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
-            `user_id` INT UNSIGNED NOT NULL,
-            `password_hash` VARCHAR(255) NOT NULL,
-            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`history_id`),
-            INDEX `idx_ph_user_created` (`user_id`, `created_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $pdo->query("SELECT 1 FROM `PASSWORD_HISTORY` LIMIT 0");
     } catch (PDOException $e) {
-        // Table may already exist
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `PASSWORD_HISTORY` (
+                `history_id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `password_hash` VARCHAR(255) NOT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`history_id`),
+                INDEX `idx_ph_user_created` (`user_id`, `created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (PDOException $e2) {
+            // Table may already exist
+        }
     }
 }
 

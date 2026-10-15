@@ -286,13 +286,15 @@ async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE}/${endpoint}`;
 
     /* Abort the request if the server takes too long to respond, so the
-       UI shows an error instead of hanging on "Loading..." forever */
+       UI shows an error instead of hanging on "Loading..." forever.
+       Use 25s default to accommodate serverless cold starts & cloud DB handshakes */
 
     const controller = new AbortController();
+    const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : 25000;
 
     const timeoutId = setTimeout(function () {
         controller.abort();
-    }, 8000);
+    }, timeoutMs);
 
     try {
 
@@ -350,9 +352,12 @@ async function apiRequest(endpoint, options = {}) {
     } catch (error) {
 
         if (error.name === "AbortError") {
-
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            const tip = isLocal
+                ? "Is the PHP server running (php -S 127.0.0.1:8000) and reachable?"
+                : "The server is taking longer than expected to respond. Please check your connection or try again.";
             error = new Error(
-                `Request to ${url} timed out. Is the PHP server running (php -S 127.0.0.1:8000) and reachable?`
+                `Request to ${url} timed out. ${tip}`
             );
 
         }
@@ -1362,7 +1367,7 @@ async function buyBook(listing) {
 
     try {
 
-        await apiRequest(
+        const createdTx = await apiRequest(
             "transactions.php",
             {
 
@@ -1390,14 +1395,9 @@ async function buyBook(listing) {
         if (document.getElementById("book-list")) { await loadBooks(); filterBooks(); }
         await loadTransactions();
 
-        const createdTx = await apiRequest("transactions.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(transactionData)
-        });
-        showFeedbackModal(createdTx.transaction_id);
-
-
+        if (createdTx && createdTx.transaction_id) {
+            showFeedbackModal(createdTx.transaction_id);
+        }
 
     } catch (error) {
 
@@ -1470,7 +1470,7 @@ async function tradeBook(listing) {
 
     try {
 
-        await apiRequest(
+        const createdTx = await apiRequest(
             "transactions.php",
             {
 
@@ -1498,13 +1498,9 @@ async function tradeBook(listing) {
         if (document.getElementById("book-list")) { await loadBooks(); filterBooks(); }
         await loadTransactions();
 
-        const createdTx = await apiRequest("transactions.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(transactionData)
-        });
-        showFeedbackModal(createdTx.transaction_id);
-
+        if (createdTx && createdTx.transaction_id) {
+            showFeedbackModal(createdTx.transaction_id);
+        }
 
     } catch (error) {
 
