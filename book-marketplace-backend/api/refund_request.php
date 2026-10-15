@@ -73,7 +73,13 @@ try {
         if ($to === $row['status']) Response::json($row);
         if ($row['status'] !== 'Pending') Response::error('This refund has already been decided.', 422);
         if (!in_array($to, ['Approved', 'Rejected'], true)) Response::error('Choose Approved or Rejected.', 422);
-        Response::json($crud->update($id, ['status' => $to, 'processed_by_staff_id' => $me]));
+
+        $updated = $crud->update($id, ['status' => $to, 'processed_by_staff_id' => $me]);
+        if ($to === 'Approved' && !empty($row['transaction_id'])) {
+            $pdo->prepare("UPDATE `TRANSACTIONS` SET `payment_status` = 'Refunded' WHERE `transaction_id` = :tx_id")
+                ->execute(['tx_id' => (int) $row['transaction_id']]);
+        }
+        Response::json($updated);
     }
 
     if ($method === 'DELETE') {

@@ -124,6 +124,12 @@ try {
                 Response::error('Only an administrator can lock or unlock an account.', 403);
             }
         }
+
+        if (isset($body['status']) && $body['status'] === 'Active') {
+            ensure_column($pdo, 'LOGIN_ATTEMPTS', 'cleared_at');
+            $pdo->prepare('UPDATE `LOGIN_ATTEMPTS` SET cleared_at = UTC_TIMESTAMP() WHERE user_id = :uid AND cleared_at IS NULL')
+                ->execute(['uid' => $id]);
+        }
     }
 
     if ($method === 'DELETE') {

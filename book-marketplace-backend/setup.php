@@ -7,11 +7,28 @@
  * Delete this file after setup is complete.
  */
 
-$dbHost = '127.0.0.1';
-$dbPort = '3306';
-$dbUser = 'root';
-$dbPass = '';
-$dbName = 'book_marketplace';
+// Load environment variables if available
+foreach ([__DIR__ . '/.env', __DIR__ . '/.env.local', dirname(__DIR__) . '/.env', dirname(__DIR__) . '/.env.local'] as $envFile) {
+    if (file_exists($envFile) && is_readable($envFile)) {
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) continue;
+            if (strpos($line, '=') !== false) {
+                [$k, $v] = explode('=', $line, 2);
+                $k = trim($k);
+                $v = trim($v, " \t\n\r\0\x0B\"'");
+                if (getenv($k) === false) putenv("{$k}={$v}");
+            }
+        }
+    }
+}
+
+$dbHost = getenv('DB_HOST') ?: '127.0.0.1';
+$dbPort = getenv('DB_PORT') ?: '3306';
+$dbUser = getenv('DB_USER') ?: 'root';
+$dbPass = getenv('DB_PASS') ?: '';
+$dbName = getenv('DB_NAME') ?: 'book_marketplace';
 
 $steps = [];
 $success = true;
@@ -66,7 +83,7 @@ CREATE TABLE `USER` (
   `email` VARCHAR(255) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `role` ENUM('Customer','Staff','Admin') NOT NULL DEFAULT 'Customer',
-  `status` ENUM('Active','Suspended','Banned','Pending Verification') NOT NULL DEFAULT 'Pending Verification',
+  `status` ENUM('Active','Suspended','Banned','Pending Verification','Locked') NOT NULL DEFAULT 'Pending Verification',
   `permission` JSON DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),

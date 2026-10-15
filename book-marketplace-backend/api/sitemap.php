@@ -15,6 +15,8 @@ $urls = [
     ['loc' => '/register.html', 'priority' => '0.5', 'changefreq' => 'monthly'],
     ['loc' => '/customer-dashboard.html', 'priority' => '0.4', 'changefreq' => 'monthly'],
     ['loc' => '/transactions.html', 'priority' => '0.4', 'changefreq' => 'monthly'],
+    ['loc' => '/refund.html', 'priority' => '0.6', 'changefreq' => 'monthly'],
+    ['loc' => '/report.html', 'priority' => '0.6', 'changefreq' => 'monthly'],
     ['loc' => '/staff.html', 'priority' => '0.3', 'changefreq' => 'monthly'],
     ['loc' => '/admin.html', 'priority' => '0.3', 'changefreq' => 'monthly'],
 ];

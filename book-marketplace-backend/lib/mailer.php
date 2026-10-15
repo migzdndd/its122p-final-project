@@ -158,7 +158,7 @@ HTML;
           . "This link expires in 48 hours. If you did not create an account, you can ignore this email.";
 
     $res = send_resend_email($toEmail, 'Verify your email - Librowse Book Exchange', $html, $text);
-    if (!empty($res['dev_mode'])) {
+    if (!empty($res['dev_mode']) || empty($res['success'])) {
         $res['dev_preview_link'] = $link;
     }
     return $res;
@@ -220,7 +220,7 @@ HTML;
           . "If you did not request this, you can ignore this email.";
 
     $res = send_resend_email($toEmail, 'Reset your password - Librowse Book Exchange', $html, $text);
-    if (!empty($res['dev_mode'])) {
+    if (!empty($res['dev_mode']) || empty($res['success'])) {
         $res['dev_preview_link'] = $link;
     }
     return $res;
